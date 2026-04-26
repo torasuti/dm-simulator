@@ -11,28 +11,29 @@ interface Props {
 const SOURCE_ZONES: ZoneId[] = ALL_ZONE_IDS.filter((z) => z !== 'displayZone');
 
 export function MacroStepForm({ step, index, onChange, onRemove }: Props) {
-  function handleTypeChange(type: MacroAction['type']) {
+  // 表示用の正規化タイプ（LOOP系は統一タイプとして扱う）
+  const normalizedType = step.type === 'PICK_FROM_ZONE_LOOP' ? 'PICK_FROM_ZONE'
+    : step.type === 'MULTI_EVOLVE_LOOP' ? 'MULTI_EVOLVE'
+    : step.type;
+
+  function handleTypeChange(type: string) {
     if (type === 'MOVE_TOP_TO_ZONE') onChange({ type: 'MOVE_TOP_TO_ZONE', n: 1, destination: 'graveyard' });
     else if (type === 'REVEAL_AND_SELECT') onChange({ type: 'REVEAL_AND_SELECT', n: 3, destinations: ['hand', 'graveyard', 'manaZone'] });
     else if (type === 'PICK_FROM_ZONE') onChange({ type: 'PICK_FROM_ZONE', sources: ['graveyard'], count: 1, destination: 'deckBottom' });
-    else if (type === 'PICK_FROM_ZONE_LOOP') onChange({ type: 'PICK_FROM_ZONE_LOOP', sources: ['graveyard'], destination: 'deckBottom' });
     else if (type === 'SHUFFLE') onChange({ type: 'SHUFFLE', zoneId: 'deck' });
     else if (type === 'GR_SUMMON_MACRO') onChange({ type: 'GR_SUMMON_MACRO' });
     else if (type === 'MULTI_EVOLVE') onChange({ type: 'MULTI_EVOLVE', evolutionSources: ['hand'], baseSources: ['battleZone'], baseCount: 1, destination: 'battleZone' });
-    else if (type === 'MULTI_EVOLVE_LOOP') onChange({ type: 'MULTI_EVOLVE_LOOP', evolutionSources: ['hand'], baseSources: ['battleZone'], destination: 'battleZone' });
   }
 
   return (
     <div className="macro-step">
       <span className="step-index">{index + 1}</span>
 
-      <select value={step.type} onChange={(e) => handleTypeChange(e.target.value as MacroAction['type'])} className="select-input">
+      <select value={normalizedType} onChange={(e) => handleTypeChange(e.target.value)} className="select-input">
         <option value="MOVE_TOP_TO_ZONE">山上N枚を移動</option>
         <option value="REVEAL_AND_SELECT">山上N枚公開して選択</option>
-        <option value="PICK_FROM_ZONE">ゾーンからN枚選んで移動</option>
-        <option value="PICK_FROM_ZONE_LOOP">ゾーンから何枚でも選んで移動（✕で終了）</option>
-        <option value="MULTI_EVOLVE">進化（枚数）</option>
-        <option value="MULTI_EVOLVE_LOOP">進化（∞）</option>
+        <option value="PICK_FROM_ZONE">ゾーン選択</option>
+        <option value="MULTI_EVOLVE">進化</option>
         <option value="SHUFFLE">シャッフル</option>
         <option value="GR_SUMMON_MACRO">GR召喚</option>
       </select>
@@ -126,6 +127,22 @@ export function MacroStepForm({ step, index, onChange, onRemove }: Props) {
             </label>
           )}
           <label className="step-inline">
+            <input
+              type="checkbox"
+              checked={step.type === 'PICK_FROM_ZONE_LOOP'}
+              onChange={(e) => {
+                const sources = (step as { sources?: ZoneId[] }).sources ?? ['graveyard'];
+                const dest = step.destination;
+                if (e.target.checked) {
+                  onChange({ type: 'PICK_FROM_ZONE_LOOP', sources, destination: dest });
+                } else {
+                  onChange({ type: 'PICK_FROM_ZONE', sources, count: 1, destination: dest });
+                }
+              }}
+            />
+            ∞（制限なし）
+          </label>
+          <label className="step-inline">
             <span>送り先</span>
             <select value={step.destination}
               onChange={(e) => onChange({ ...step, destination: e.target.value as MacroDestination })}
@@ -186,6 +203,23 @@ export function MacroStepForm({ step, index, onChange, onRemove }: Props) {
                 className="text-input num-input" />
             </label>
           )}
+          <label className="step-inline">
+            <input
+              type="checkbox"
+              checked={step.type === 'MULTI_EVOLVE_LOOP'}
+              onChange={(e) => {
+                const evoSrc = step.evolutionSources;
+                const baseSrc = step.baseSources;
+                const dest = step.destination;
+                if (e.target.checked) {
+                  onChange({ type: 'MULTI_EVOLVE_LOOP', evolutionSources: evoSrc, baseSources: baseSrc, destination: dest });
+                } else {
+                  onChange({ type: 'MULTI_EVOLVE', evolutionSources: evoSrc, baseSources: baseSrc, baseCount: 1, destination: dest });
+                }
+              }}
+            />
+            ∞（制限なし）
+          </label>
           <label className="step-inline">
             <span>送り先</span>
             <select value={step.destination}

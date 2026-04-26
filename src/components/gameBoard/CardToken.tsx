@@ -98,11 +98,11 @@ export function CardToken({
   if (pickable) {
     return (
       <div
-        className={`card-token pickable ${picked ? 'picked' : ''}`}
+        className={`card-token pickable ${picked ? 'picked' : ''}${faceDown ? ' face-down' : ''}`}
         onClick={onPick}
       >
         {picked && <span className="pick-check">✓</span>}
-        <span className="card-token-name">{card.name}</span>
+        <span className="card-token-name">{faceDown ? '●' : card.name}</span>
         {stackDepth > 0 && <span className="stack-badge">▲{stackDepth}</span>}
       </div>
     );

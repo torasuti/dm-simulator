@@ -8,6 +8,9 @@ import { ALL_ZONE_IDS, DEFAULT_CARD_MENU_CONFIG } from '../constants/zones';
 
 const MAX_HISTORY = 20;
 
+// これらのゾーンに移動したカードは強制的にアンタップ
+const TAP_ALLOWED_ZONES: Set<ZoneId> = new Set(['battleZone', 'manaZone']);
+
 function emptyBoard(): BoardState {
   const board = {} as BoardState;
   for (const z of ALL_ZONE_IDS) board[z] = [];
@@ -20,13 +23,17 @@ function snapshot(board: BoardState): BoardState {
   ) as BoardState;
 }
 
+function untapForDest(card: Card, destZoneId: ZoneId): Card {
+  return TAP_ALLOWED_ZONES.has(destZoneId) ? card : { ...card, tapped: false };
+}
+
 function applyDestination(board: BoardState, card: Card, dest: MacroDestination): void {
   if (card.isGR && dest !== 'battleZone' && dest !== 'grZoneBottom') {
-    board.grZone = [...board.grZone, { ...card, isGR: false }];
+    board.grZone = [...board.grZone, { ...card, isGR: false, tapped: false }];
     return;
   }
   if (card.isSuperDim && dest !== 'battleZone' && dest !== 'superDimZone') {
-    board.superDimZone = [...board.superDimZone, { ...card, isSuperDim: false }];
+    board.superDimZone = [...board.superDimZone, { ...card, isSuperDim: false, tapped: false }];
     return;
   }
   if (card.stack && card.stack.length > 0 && dest !== 'battleZone' && dest !== 'shieldZone') {
@@ -34,25 +41,27 @@ function applyDestination(board: BoardState, card: Card, dest: MacroDestination)
     return;
   }
   if (dest === 'deckTop' || dest === 'deckTopShuffle' || dest === 'deckTopOrder') {
-    board.deck = [card, ...board.deck];
+    board.deck = [untapForDest(card, 'deck'), ...board.deck];
   } else if (dest === 'deckBottom' || dest === 'deckBottomShuffle' || dest === 'deckBottomOrder') {
-    board.deck = [...board.deck, card];
+    board.deck = [...board.deck, untapForDest(card, 'deck')];
   } else if (dest === 'grZoneBottom') {
-    board.grZone = [...board.grZone, { ...card, isGR: false }];
+    board.grZone = [...board.grZone, { ...card, isGR: false, tapped: false }];
   } else if (dest === 'superDimZone') {
-    board.superDimZone = [...board.superDimZone, { ...card, isSuperDim: false }];
+    board.superDimZone = [...board.superDimZone, { ...card, isSuperDim: false, tapped: false }];
   } else {
-    board[dest as ZoneId] = [...board[dest as ZoneId], card];
+    board[dest as ZoneId] = [...board[dest as ZoneId], untapForDest(card, dest as ZoneId)];
   }
 }
 
 function applyDestinationMultiple(board: BoardState, cards: Card[], dest: MacroDestination): void {
+  const destZoneId: ZoneId = (dest === 'deckTop' || dest === 'deckTopShuffle' || dest === 'deckTopOrder' || dest === 'deckBottom' || dest === 'deckBottomShuffle' || dest === 'deckBottomOrder') ? 'deck' : dest as ZoneId;
+  const placed = TAP_ALLOWED_ZONES.has(destZoneId) ? cards : cards.map(c => ({ ...c, tapped: false }));
   if (dest === 'deckTop' || dest === 'deckTopShuffle' || dest === 'deckTopOrder') {
-    board.deck = [...cards, ...board.deck];
+    board.deck = [...placed, ...board.deck];
   } else if (dest === 'deckBottom' || dest === 'deckBottomShuffle' || dest === 'deckBottomOrder') {
-    board.deck = [...board.deck, ...cards];
+    board.deck = [...board.deck, ...placed];
   } else {
-    board[dest as ZoneId] = [...board[dest as ZoneId], ...cards];
+    board[dest as ZoneId] = [...board[dest as ZoneId], ...placed];
   }
 }
 
@@ -264,12 +273,13 @@ function gameReducer(state: GameState, action: GameAction): GameState {
           : [card];
         for (let c of cardsToPlace) {
           if (c.isGR && toZone !== 'battleZone' && toZone !== 'grZone') {
-            board.grZone = [...board.grZone, { ...c, isGR: false }];
+            board.grZone = [...board.grZone, { ...c, isGR: false, tapped: false }];
           } else if (c.isSuperDim && toZone !== 'battleZone' && toZone !== 'superDimZone') {
-            board.superDimZone = [...board.superDimZone, { ...c, isSuperDim: false }];
+            board.superDimZone = [...board.superDimZone, { ...c, isSuperDim: false, tapped: false }];
           } else {
             if (toZone === 'grZone') c = { ...c, isGR: false };
             if (toZone === 'superDimZone') c = { ...c, isSuperDim: false };
+            if (!TAP_ALLOWED_ZONES.has(toZone)) c = { ...c, tapped: false };
             board[toZone] = [...board[toZone], c];
           }
         }

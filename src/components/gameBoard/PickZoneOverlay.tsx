@@ -21,6 +21,7 @@ export function PickZoneOverlay() {
   const isLoop = maxCount === null;
   const isOrderedDest = destination === 'deckTop' || destination === 'deckBottom';
   const cards = state.board[activeSource];
+  const isShieldSource = activeSource === 'shieldZone';
 
   const title = isLoop
     ? `${ZONE_DISPLAY_NAMES[activeSource]}から選択 → ${MACRO_DEST_NAMES[destination]}（✕で終了）`
@@ -58,6 +59,7 @@ export function PickZoneOverlay() {
                 <CardToken
                   key={card.id}
                   card={card}
+                  faceDown={isShieldSource}
                   pickable
                   onPick={() => dispatch({ type: 'TOGGLE_PICK_CARD', cardId: card.id })}
                 />
@@ -131,6 +133,7 @@ export function PickZoneOverlay() {
                   <CardToken
                     key={card.id}
                     card={card}
+                    faceDown={isShieldSource}
                     pickable
                     picked={orderedIds.includes(card.id)}
                     onPick={() => !reachedMax || orderedIds.includes(card.id) ? toggleCard(card.id) : undefined}

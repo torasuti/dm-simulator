@@ -41,7 +41,6 @@ export function MacroEditor({ macros, onChange }: Props) {
     else if (type === 'SHUFFLE') step = { type: 'SHUFFLE', zoneId: 'deck' };
     else if (type === 'GR_SUMMON_MACRO') step = { type: 'GR_SUMMON_MACRO' };
     else if (type === 'MULTI_EVOLVE') step = { type: 'MULTI_EVOLVE', evolutionSources: ['hand'], baseSources: ['battleZone'], baseCount: 1, destination: 'battleZone' };
-    else if (type === 'MULTI_EVOLVE_LOOP') step = { type: 'MULTI_EVOLVE_LOOP', evolutionSources: ['hand'], baseSources: ['battleZone'], destination: 'battleZone' };
     else step = { type: 'PICK_FROM_ZONE_LOOP', sources: ['graveyard'], destination: 'hand' };
     updateMacro({ ...editing, steps: [...editing.steps, step] });
   }
@@ -131,10 +130,8 @@ export function MacroEditor({ macros, onChange }: Props) {
             <span>ステップ追加:</span>
             <Button size="sm" onClick={() => addStep('MOVE_TOP_TO_ZONE')}>山上移動</Button>
             <Button size="sm" onClick={() => addStep('REVEAL_AND_SELECT')}>公開選択</Button>
-            <Button size="sm" onClick={() => addStep('PICK_FROM_ZONE')}>ゾーン選択(枚数)</Button>
-            <Button size="sm" onClick={() => addStep('PICK_FROM_ZONE_LOOP')}>ゾーン選択(∞)</Button>
-            <Button size="sm" onClick={() => addStep('MULTI_EVOLVE')}>進化(枚数)</Button>
-            <Button size="sm" onClick={() => addStep('MULTI_EVOLVE_LOOP')}>進化(∞)</Button>
+            <Button size="sm" onClick={() => addStep('PICK_FROM_ZONE')}>ゾーン選択</Button>
+            <Button size="sm" onClick={() => addStep('MULTI_EVOLVE')}>進化</Button>
             <Button size="sm" onClick={() => addStep('SHUFFLE')}>シャッフル</Button>
             <Button size="sm" onClick={() => addStep('GR_SUMMON_MACRO')}>GR召喚</Button>
           </div>

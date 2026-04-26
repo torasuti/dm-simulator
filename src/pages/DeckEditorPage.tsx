@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
-import { loadDeckCloud, saveDeckCloud, shareDeck } from '../storage/cloudStorage';
+import { loadDeckCloud, saveDeckCloud, shareDeck, loadSharedDeck } from '../storage/cloudStorage';
 import { loadDeck, saveDeck } from '../storage/localStorage';
 import { useAuth } from '../context/AuthContext';
 import type { DeckDefinition } from '../types';
+import { createCard } from '../utils/deckUtils';
 import { CardListEditor } from '../components/deckEditor/CardListEditor';
 import { MacroEditor } from '../components/deckEditor/MacroEditor';
 import { ZonePresetEditor } from '../components/deckEditor/ZonePresetEditor';
@@ -22,10 +23,12 @@ export function DeckEditorPage() {
   const [cardTab, setCardTab] = useState<CardTab>('main');
   const [saved, setSaved] = useState(false);
   const [exportCode, setExportCode] = useState<string | null>(null);
+  const [exportLoading, setExportLoading] = useState(false);
   const [copyDone, setCopyDone] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState('');
   const [importError, setImportError] = useState('');
+  const [importLoading, setImportLoading] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [shareLoading, setShareLoading] = useState(false);
   const [shareCopyDone, setShareCopyDone] = useState(false);
@@ -69,11 +72,18 @@ export function DeckEditorPage() {
     }
   }
 
-  function handleExport() {
+  async function handleExport() {
     if (!deck) return;
-    const code = btoa(encodeURIComponent(JSON.stringify(deck)));
-    setExportCode(code);
-    setCopyDone(false);
+    setExportLoading(true);
+    try {
+      const id = await shareDeck({ ...deck, updatedAt: Date.now() });
+      setExportCode(id);
+      setCopyDone(false);
+    } catch {
+      alert('コードの生成に失敗しました');
+    } finally {
+      setExportLoading(false);
+    }
   }
 
   function handleCopyCode() {
@@ -84,13 +94,20 @@ export function DeckEditorPage() {
   }
 
   async function handleImport() {
+    const code = importText.trim();
+    if (!code) return;
+    setImportLoading(true);
+    setImportError('');
     try {
-      const json = decodeURIComponent(atob(importText.trim()));
-      const imported = JSON.parse(json) as DeckDefinition;
+      const imported = await loadSharedDeck(code);
+      if (!imported) throw new Error('not found');
       const newDeck: DeckDefinition = {
         ...imported,
         id: crypto.randomUUID(),
         name: imported.name + ' (インポート)',
+        cards: imported.cards.map((c) => createCard(c.name)),
+        grCards: (imported.grCards ?? []).map((c) => createCard(c.name)),
+        superDimCards: (imported.superDimCards ?? []).map((c) => createCard(c.name)),
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
@@ -100,7 +117,9 @@ export function DeckEditorPage() {
       setImportError('');
       dispatch({ type: 'EDIT_DECK', deckId: newDeck.id });
     } catch {
-      setImportError('コードが無効です。正しいコードを貼り付けてください。');
+      setImportError('コードが無効です。正しい6文字のコードを入力してください。');
+    } finally {
+      setImportLoading(false);
     }
   }
 
@@ -117,8 +136,8 @@ export function DeckEditorPage() {
           className="text-input deck-title-input"
         />
         <Button variant="ghost" size="sm" onClick={handleShare} disabled={shareLoading}>{shareLoading ? '共有中...' : '🔗 URLで共有'}</Button>
-        <Button variant="ghost" size="sm" onClick={handleExport}>エクスポート</Button>
-        <Button variant="ghost" size="sm" onClick={() => { setImportOpen(true); setImportText(''); setImportError(''); }}>インポート</Button>
+        <Button variant="ghost" size="sm" onClick={handleExport} disabled={exportLoading}>{exportLoading ? '生成中...' : 'コード発行'}</Button>
+        <Button variant="ghost" size="sm" onClick={() => { setImportOpen(true); setImportText(''); setImportError(''); }}>コードで取得</Button>
         <Button variant="primary" onClick={handleSave}>
           {saved ? '✓ 保存済み' : '保存'}
         </Button>
@@ -149,13 +168,13 @@ export function DeckEditorPage() {
       {exportCode && (
         <div className="modal-backdrop" onClick={() => setExportCode(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h3 className="section-title">デッキコード（エクスポート）</h3>
-            <p className="zone-config-hint">このコードをコピーして共有してください。</p>
-            <textarea
+            <h3 className="section-title">デッキコード</h3>
+            <p className="zone-config-hint">このコードを相手に送ってください。「コードで取得」から入力するとデッキを取得できます。</p>
+            <input
               readOnly
               value={exportCode}
               className="text-input"
-              style={{ width: '100%', height: 120, fontSize: 12, fontFamily: 'monospace', resize: 'vertical' }}
+              style={{ width: '100%', fontFamily: 'monospace', fontSize: 24, textAlign: 'center', letterSpacing: 4 }}
               onFocus={(e) => e.target.select()}
             />
             <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
@@ -169,18 +188,22 @@ export function DeckEditorPage() {
       {importOpen && (
         <div className="modal-backdrop" onClick={() => setImportOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h3 className="section-title">デッキコード（インポート）</h3>
-            <p className="zone-config-hint">共有されたコードを貼り付けてください。新しいデッキとして保存されます。</p>
-            <textarea
+            <h3 className="section-title">コードでデッキ取得</h3>
+            <p className="zone-config-hint">6文字のデッキコードを入力してください。新しいデッキとして保存されます。</p>
+            <input
               value={importText}
               onChange={(e) => { setImportText(e.target.value); setImportError(''); }}
-              placeholder="コードをここに貼り付け..."
+              placeholder="例: abc123"
               className="text-input"
-              style={{ width: '100%', height: 120, fontSize: 12, fontFamily: 'monospace', resize: 'vertical' }}
+              style={{ width: '100%', fontFamily: 'monospace', fontSize: 20, textAlign: 'center', letterSpacing: 4 }}
+              maxLength={10}
+              disabled={importLoading}
             />
             {importError && <p style={{ color: 'var(--color-danger)', marginTop: 4, fontSize: 13 }}>{importError}</p>}
             <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-              <Button variant="primary" onClick={handleImport} disabled={!importText.trim()}>インポート</Button>
+              <Button variant="primary" onClick={handleImport} disabled={!importText.trim() || importLoading}>
+                {importLoading ? '取得中...' : '取得'}
+              </Button>
               <Button variant="ghost" onClick={() => setImportOpen(false)}>キャンセル</Button>
             </div>
           </div>
