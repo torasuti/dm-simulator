@@ -76,6 +76,19 @@ export function CardToken({
     },
   } : {};
 
+  if (pickable) {
+    return (
+      <div
+        className={`card-token pickable ${picked ? 'picked' : ''}${faceDown ? ' face-down' : ''}`}
+        onClick={onPick}
+      >
+        {picked && <span className="pick-check">✓</span>}
+        <span className="card-token-name">{faceDown ? '●' : card.name}</span>
+        {stackDepth > 0 && <span className="stack-badge">▲{stackDepth}</span>}
+      </div>
+    );
+  }
+
   if (faceDown) {
     return (
       <div
@@ -119,19 +132,6 @@ export function CardToken({
       >
         {selectionIndex !== undefined && <span className="selection-badge">{selectionIndex + 1}</span>}
         <span className="card-token-name">{card.name}</span>
-        {stackDepth > 0 && <span className="stack-badge">▲{stackDepth}</span>}
-      </div>
-    );
-  }
-
-  if (pickable) {
-    return (
-      <div
-        className={`card-token pickable ${picked ? 'picked' : ''}${faceDown ? ' face-down' : ''}`}
-        onClick={onPick}
-      >
-        {picked && <span className="pick-check">✓</span>}
-        <span className="card-token-name">{faceDown ? '●' : card.name}</span>
         {stackDepth > 0 && <span className="stack-badge">▲{stackDepth}</span>}
       </div>
     );
