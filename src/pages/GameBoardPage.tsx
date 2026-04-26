@@ -1,7 +1,9 @@
 import { useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { useGameContext } from '../context/GameContext';
+import { useAuth } from '../context/AuthContext';
 import { loadDeck } from '../storage/localStorage';
+import { loadDeckCloud } from '../storage/cloudStorage';
 import { ZonePanel } from '../components/gameBoard/ZonePanel';
 import { MacroBar } from '../components/gameBoard/MacroBar';
 import { GameControls } from '../components/gameBoard/GameControls';
@@ -17,6 +19,7 @@ import { isActiveTouchDrag, moveTouchGhost, endTouchDrag } from '../utils/touchD
 export function GameBoardPage() {
   const { state: appState } = useAppContext();
   const { state, dispatch } = useGameContext();
+  const { user } = useAuth();
   useEffect(() => {
     function handleTouchMove(e: TouchEvent) {
       if (!isActiveTouchDrag()) return;
@@ -38,11 +41,16 @@ export function GameBoardPage() {
   }, [dispatch]);
 
   useEffect(() => {
-    if (appState.selectedDeckId && state.deckId !== appState.selectedDeckId) {
+    if (!appState.selectedDeckId || state.deckId === appState.selectedDeckId) return;
+    if (user) {
+      loadDeckCloud(appState.selectedDeckId).then((deck) => {
+        if (deck) dispatch({ type: 'INIT_GAME', deck });
+      });
+    } else {
       const deck = loadDeck(appState.selectedDeckId);
       if (deck) dispatch({ type: 'INIT_GAME', deck });
     }
-  }, [appState.selectedDeckId]);
+  }, [appState.selectedDeckId, user]);
 
   const visibleZones = state.zoneConfigs.filter((z) => z.visible);
   const hasPending = !!(state.pendingReveal || state.pendingPick || state.pendingEvolve || state.pendingMultiEvolve || state.pendingMultiStack);
