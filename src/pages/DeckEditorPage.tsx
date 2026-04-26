@@ -18,6 +18,11 @@ export function DeckEditorPage() {
   const [tab, setTab] = useState<Tab>('cards');
   const [cardTab, setCardTab] = useState<CardTab>('main');
   const [saved, setSaved] = useState(false);
+  const [exportCode, setExportCode] = useState<string | null>(null);
+  const [copyDone, setCopyDone] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importText, setImportText] = useState('');
+  const [importError, setImportError] = useState('');
 
   useEffect(() => {
     if (state.editingDeckId) {
@@ -37,6 +42,41 @@ export function DeckEditorPage() {
     dispatch({ type: 'NAVIGATE', page: 'deckList' });
   }
 
+  function handleExport() {
+    if (!deck) return;
+    const code = btoa(encodeURIComponent(JSON.stringify(deck)));
+    setExportCode(code);
+    setCopyDone(false);
+  }
+
+  function handleCopyCode() {
+    if (!exportCode) return;
+    navigator.clipboard.writeText(exportCode);
+    setCopyDone(true);
+    setTimeout(() => setCopyDone(false), 2000);
+  }
+
+  function handleImport() {
+    try {
+      const json = decodeURIComponent(atob(importText.trim()));
+      const imported = JSON.parse(json) as DeckDefinition;
+      const newDeck: DeckDefinition = {
+        ...imported,
+        id: crypto.randomUUID(),
+        name: imported.name + ' (インポート)',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      saveDeck(newDeck);
+      setImportOpen(false);
+      setImportText('');
+      setImportError('');
+      dispatch({ type: 'EDIT_DECK', deckId: newDeck.id });
+    } catch {
+      setImportError('コードが無効です。正しいコードを貼り付けてください。');
+    }
+  }
+
   if (!deck) return <div className="page"><p>読み込み中...</p></div>;
 
   return (
@@ -49,10 +89,53 @@ export function DeckEditorPage() {
           onChange={(e) => setDeck({ ...deck, name: e.target.value })}
           className="text-input deck-title-input"
         />
+        <Button variant="ghost" size="sm" onClick={handleExport}>エクスポート</Button>
+        <Button variant="ghost" size="sm" onClick={() => { setImportOpen(true); setImportText(''); setImportError(''); }}>インポート</Button>
         <Button variant="primary" onClick={handleSave}>
           {saved ? '✓ 保存済み' : '保存'}
         </Button>
       </div>
+
+      {exportCode && (
+        <div className="modal-backdrop" onClick={() => setExportCode(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3 className="section-title">デッキコード（エクスポート）</h3>
+            <p className="zone-config-hint">このコードをコピーして共有してください。</p>
+            <textarea
+              readOnly
+              value={exportCode}
+              className="text-input"
+              style={{ width: '100%', height: 120, fontSize: 12, fontFamily: 'monospace', resize: 'vertical' }}
+              onFocus={(e) => e.target.select()}
+            />
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <Button variant="primary" onClick={handleCopyCode}>{copyDone ? '✓ コピー済み' : 'コピー'}</Button>
+              <Button variant="ghost" onClick={() => setExportCode(null)}>閉じる</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {importOpen && (
+        <div className="modal-backdrop" onClick={() => setImportOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3 className="section-title">デッキコード（インポート）</h3>
+            <p className="zone-config-hint">共有されたコードを貼り付けてください。新しいデッキとして保存されます。</p>
+            <textarea
+              value={importText}
+              onChange={(e) => { setImportText(e.target.value); setImportError(''); }}
+              placeholder="コードをここに貼り付け..."
+              className="text-input"
+              style={{ width: '100%', height: 120, fontSize: 12, fontFamily: 'monospace', resize: 'vertical' }}
+            />
+            {importError && <p style={{ color: 'var(--color-danger)', marginTop: 4, fontSize: 13 }}>{importError}</p>}
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <Button variant="primary" onClick={handleImport} disabled={!importText.trim()}>インポート</Button>
+              <Button variant="ghost" onClick={() => setImportOpen(false)}>キャンセル</Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="tab-bar">
         <button className={`tab ${tab === 'cards' ? 'active' : ''}`} onClick={() => setTab('cards')}>

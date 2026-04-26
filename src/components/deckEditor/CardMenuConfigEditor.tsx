@@ -1,5 +1,5 @@
 import type { CardMenuConfig, CardMenuLayout, MacroDestination, CardMenuStackAction } from '../../types';
-import { MACRO_DESTINATIONS, MACRO_DEST_NAMES } from '../../constants/zones';
+import { CARD_MENU_DESTINATIONS, MACRO_DEST_NAMES } from '../../constants/zones';
 
 const STACK_ACTION_NAMES: Record<CardMenuStackAction, string> = {
   stackTop: '上に重ねる',
@@ -18,7 +18,7 @@ export function CardMenuConfigEditor({ config, onChange }: Props) {
     const next = has
       ? config.destinations.filter((d) => d !== dest)
       : [...config.destinations, dest];
-    const ordered = MACRO_DESTINATIONS.filter((d) => next.includes(d));
+    const ordered = CARD_MENU_DESTINATIONS.filter((d) => next.includes(d));
     onChange({ ...config, destinations: ordered });
   }
 
@@ -26,6 +26,13 @@ export function CardMenuConfigEditor({ config, onChange }: Props) {
     const current = config.stackActions ?? [];
     const next = current.includes(action) ? current.filter((a) => a !== action) : [...current, action];
     onChange({ ...config, stackActions: next });
+  }
+
+  function toggleMultiStackDest(dest: MacroDestination) {
+    const current = config.multiStackDestinations ?? ['battleZone', 'shieldZone'];
+    const next = current.includes(dest) ? current.filter((d) => d !== dest) : [...current, dest];
+    const ordered = CARD_MENU_DESTINATIONS.filter((d) => next.includes(d));
+    onChange({ ...config, multiStackDestinations: ordered });
   }
 
   return (
@@ -46,7 +53,7 @@ export function CardMenuConfigEditor({ config, onChange }: Props) {
       </div>
 
       <div className="card-menu-dest-list">
-        {MACRO_DESTINATIONS.map((dest) => (
+        {CARD_MENU_DESTINATIONS.map((dest) => (
           <label key={dest} className="config-toggle card-menu-dest-item">
             <input
               type="checkbox"
@@ -72,6 +79,23 @@ export function CardMenuConfigEditor({ config, onChange }: Props) {
             </label>
           ))}
         </div>
+        {(config.stackActions ?? []).includes('multiStack') && (
+          <div style={{ marginTop: 8, paddingLeft: 16 }}>
+            <p className="zone-config-hint" style={{ marginBottom: 4 }}>「複数枚重ねる」の送り先ゾーン:</p>
+            <div className="card-menu-dest-list">
+              {CARD_MENU_DESTINATIONS.map((dest) => (
+                <label key={dest} className="config-toggle card-menu-dest-item">
+                  <input
+                    type="checkbox"
+                    checked={(config.multiStackDestinations ?? ['battleZone', 'shieldZone']).includes(dest)}
+                    onChange={() => toggleMultiStackDest(dest)}
+                  />
+                  {MACRO_DEST_NAMES[dest]}
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="card-menu-preview">

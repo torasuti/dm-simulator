@@ -880,3 +880,99 @@ body {
   transition: width 0.3s ease;
 }
 .pdf-progress-label { font-size: 12px; color: var(--text-muted); }
+
+/* ── Tablet / Touch Responsive ── */
+
+/* タッチデバイス：タップターゲットを大きく */
+@media (pointer: coarse) {
+  .btn { min-height: 40px; touch-action: manipulation; }
+  .btn-sm { min-height: 36px; }
+  .tab { padding: 12px 20px; touch-action: manipulation; }
+  .icon-btn { min-width: 36px; min-height: 36px; touch-action: manipulation; }
+  .mana-btn { width: 40px; height: 40px; font-size: 18px; }
+  .macro-btn { padding: 10px 18px; min-height: 40px; }
+  .pick-zone-tab { padding: 8px 16px; min-height: 36px; }
+  .ability-stock-btn { width: 32px; height: 32px; }
+  .macro-counter-btn { width: 30px; height: 30px; }
+  .overlay-minimize-btn { min-height: 36px; padding: 6px 14px; }
+  button { touch-action: manipulation; }
+}
+
+/* タブレット（〜900px）*/
+@media (max-width: 900px) {
+  /* ゲームボード：列幅を確保して横スクロール可能に */
+  .board-layout {
+    grid-template-columns: repeat(6, minmax(90px, 1fr));
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* カードメニュー：右端で消えないよう下に表示 */
+  .card-menu {
+    top: 100%;
+    left: 0;
+    right: auto;
+    max-width: min(220px, 90vw);
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  .card-menu.card-menu-horizontal {
+    flex-direction: column;
+    max-height: 200px;
+  }
+  .card-menu.card-menu-horizontal button {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* マクロエディター：縦積みレイアウト */
+  .macro-editor { flex-direction: column; }
+  .macro-list { width: 100%; flex-direction: row; flex-wrap: wrap; }
+  .macro-item { flex: 1 1 auto; min-width: 120px; }
+
+  /* タブバー：横スクロール */
+  .tab-bar { overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
+  .tab { white-space: nowrap; }
+  .card-subtab-bar { overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
+
+  /* デッキエディターヘッダー：折り返し許可 */
+  .editor-header { flex-wrap: wrap; }
+  .deck-title-input { min-width: 180px; }
+
+  /* ゲームコントロール：横スクロール */
+  .game-controls { overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
+
+  /* マクロバー：折り返しで対応（max-height で高くなりすぎ防止） */
+  .macro-bar { max-height: 100px; overflow-y: auto; }
+
+  /* オーバーレイのインスペクターパネル幅を縮小 */
+  .zone-inspector-side { width: 180px; min-width: 180px; }
+}
+
+/* タブレット縦 〜768px */
+@media (max-width: 768px) {
+  .page { padding: 10px; }
+  .deck-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  .display-zone-modal { padding: 16px; gap: 12px; }
+  .pick-modal { width: min(700px, 96vw); }
+  .modal { min-width: min(320px, 92vw); }
+
+  /* ゲームボード：最小列幅を少し縮小 */
+  .board-layout {
+    grid-template-columns: repeat(6, minmax(78px, 1fr));
+    gap: 5px;
+    padding: 5px;
+  }
+
+  /* カードトークン：タッチしやすいよう最小高を確保 */
+  .card-token { min-height: 108px; }
+
+  /* ゾーンパネル */
+  .zone-panel { padding: 6px; }
+  .zone-label { font-size: 11px; }
+
+  /* ゾーン確認パネル：小さな画面では幅縮小 */
+  .overlay-with-inspector { flex-direction: column; max-height: none; }
+  .zone-inspector-side { width: 100%; min-width: unset; max-height: 200px; border-radius: 0 0 12px 12px; }
+  .inspector-toggle-btn { writing-mode: horizontal-tb; width: auto; min-height: unset; padding: 6px 12px; }
+}

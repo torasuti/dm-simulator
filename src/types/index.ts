@@ -58,6 +58,7 @@ export interface CardMenuConfig {
   destinations: MacroDestination[];
   layout: CardMenuLayout;
   stackActions?: CardMenuStackAction[];
+  multiStackDestinations?: MacroDestination[];
 }
 
 // マクロアクション

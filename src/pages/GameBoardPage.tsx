@@ -82,7 +82,7 @@ export function GameBoardPage() {
             pendingStack={pendingStack}
             onStackInit={(cardId, mode) => dispatch({ type: 'BEGIN_STACK', mode, sourceCardId: cardId, sourceZone: cfg.zoneId })}
             onStackTarget={(cardId) => dispatch({ type: 'COMPLETE_STACK', targetCardId: cardId, targetZone: cfg.zoneId })}
-            onMultiStackInit={(cardId) => dispatch({ type: 'BEGIN_MULTI_STACK', topCardId: cardId, topCardZone: cfg.zoneId, availableDestinations: state.cardMenuConfig.destinations })}
+            onMultiStackInit={(cardId) => dispatch({ type: 'BEGIN_MULTI_STACK', topCardId: cardId, topCardZone: cfg.zoneId, availableDestinations: state.cardMenuConfig.multiStackDestinations ?? ['battleZone', 'shieldZone'] })}
           />
         ))}
         <SpecialPanel style={{ gridRow: 3, gridColumn: '6 / span 1' }} />
