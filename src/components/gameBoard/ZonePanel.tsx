@@ -94,6 +94,7 @@ export function ZonePanel({ config, cards, style, cardMenuConfig, onTapCard, onM
     <div
       className={`zone-panel zone-${config.zoneId}${dragOver ? ' drag-over' : ''}`}
       data-mode={config.displayMode}
+      data-zone-id={config.zoneId}
       style={style}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
@@ -194,6 +195,11 @@ export function ZonePanel({ config, cards, style, cardMenuConfig, onTapCard, onM
                 e.dataTransfer.setData('cardId', card.id);
                 e.dataTransfer.setData('fromZone', config.zoneId);
                 e.dataTransfer.effectAllowed = 'move';
+              }}
+              touchDragInfo={locked || pendingStack ? undefined : {
+                cardId: card.id,
+                fromZone: config.zoneId,
+                label: isFaceDown ? '●' : card.name,
               }}
               stackViewOnly={locked}
             />

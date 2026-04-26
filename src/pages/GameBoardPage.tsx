@@ -12,10 +12,30 @@ import { MultiStackOverlay } from '../components/gameBoard/MultiStackOverlay';
 import { MultiEvolveOverlay } from '../components/gameBoard/MultiEvolveOverlay';
 import { SpecialPanel } from '../components/gameBoard/SpecialPanel';
 import type { ZoneId, MacroDestination } from '../types';
+import { isActiveTouchDrag, moveTouchGhost, endTouchDrag } from '../utils/touchDrag';
 
 export function GameBoardPage() {
   const { state: appState } = useAppContext();
   const { state, dispatch } = useGameContext();
+  useEffect(() => {
+    function handleTouchMove(e: TouchEvent) {
+      if (!isActiveTouchDrag()) return;
+      e.preventDefault();
+      moveTouchGhost(e.touches[0].clientX, e.touches[0].clientY);
+    }
+    function handleTouchEnd(e: TouchEvent) {
+      const result = endTouchDrag(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+      if (result?.toZone && result.toZone !== result.fromZone) {
+        dispatch({ type: 'MOVE_CARD', cardId: result.cardId, from: result.fromZone, to: result.toZone });
+      }
+    }
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleTouchEnd);
+    return () => {
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [dispatch]);
 
   useEffect(() => {
     if (appState.selectedDeckId && state.deckId !== appState.selectedDeckId) {

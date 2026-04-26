@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { Card, ZoneId, MacroDestination, CardMenuLayout, CardMenuStackAction } from '../../types';
 import { MACRO_DEST_NAMES } from '../../constants/zones';
+import { startTouchDrag } from '../../utils/touchDrag';
 
 interface Props {
   card: Card;
@@ -23,17 +24,20 @@ interface Props {
   picked?: boolean;
   onPick?: () => void;
   onDragStart?: (e: React.DragEvent) => void;
+  touchDragInfo?: { cardId: string; fromZone: ZoneId; label: string };
   stackViewOnly?: boolean;
 }
 
 export function CardToken({
   card, faceDown, allowTap, menuDestinations, menuStackActions, menuLayout = 'vertical',
   onTap, onMoveTo, onStackTop, onStackBottom, onMultiStack, isStackTarget, onStackTargetClick,
-  selectionIndex, onSelect, selectable, pickable, picked, onPick, onDragStart, stackViewOnly,
+  selectionIndex, onSelect, selectable, pickable, picked, onPick, onDragStart, touchDragInfo, stackViewOnly,
 }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [viewingStack, setViewingStack] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const touchStartPos = useRef<{ x: number; y: number } | null>(null);
+  const touchDragging = useRef(false);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -48,12 +52,37 @@ export function CardToken({
 
   const stackDepth = card.stack?.length ?? 0;
 
+  const touchHandlers = touchDragInfo ? {
+    onTouchStart(e: React.TouchEvent) {
+      const t = e.touches[0];
+      touchStartPos.current = { x: t.clientX, y: t.clientY };
+      touchDragging.current = false;
+    },
+    onTouchMove(e: React.TouchEvent) {
+      if (!touchStartPos.current || touchDragging.current) return;
+      const t = e.touches[0];
+      const dx = t.clientX - touchStartPos.current.x;
+      const dy = t.clientY - touchStartPos.current.y;
+      if (dx * dx + dy * dy > 64) {
+        touchDragging.current = true;
+        startTouchDrag(touchDragInfo.cardId, touchDragInfo.fromZone, t.clientX, t.clientY, touchDragInfo.label);
+      }
+    },
+    onTouchEnd(e: React.TouchEvent) {
+      const wasDragging = touchDragging.current;
+      touchDragging.current = false;
+      touchStartPos.current = null;
+      if (wasDragging) e.preventDefault();
+    },
+  } : {};
+
   if (faceDown) {
     return (
       <div
         className={`card-token face-down${isStackTarget ? ' stack-target' : ''}`}
         draggable={!!onDragStart}
         onDragStart={(e) => { onDragStart?.(e); }}
+        {...touchHandlers}
         onClick={() => {
           if (isStackTarget) { onStackTargetClick?.(); return; }
           setMenuOpen(!menuOpen);
@@ -124,6 +153,7 @@ export function CardToken({
       className={`card-token ${card.tapped ? 'tapped' : ''}${isStackTarget ? ' stack-target' : ''}`}
       draggable={!!onDragStart}
       onDragStart={(e) => { setMenuOpen(false); onDragStart?.(e); }}
+      {...touchHandlers}
       onClick={() => {
         if (isStackTarget) { onStackTargetClick?.(); return; }
         if (stackViewOnly) { setViewingStack(true); return; }

@@ -254,6 +254,22 @@ body {
   border-color: var(--accent);
   background: rgba(99,179,237,0.08);
 }
+.touch-drag-ghost {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+  background: rgba(60, 100, 240, 0.92);
+  color: #fff;
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  max-width: 130px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  transform: translateY(-100%);
+}
 .zone-header {
   display: flex; align-items: center; gap: 8px;
   margin-bottom: 6px;
