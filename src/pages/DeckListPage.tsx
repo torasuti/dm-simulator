@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
-import { loadDecks, saveDeck, deleteDeck } from '../storage/localStorage';
+import { useAuth } from '../context/AuthContext';
+import { loadDecksCloud, saveDeckCloud, deleteDeckCloud } from '../storage/cloudStorage';
 import { createNewDeck, cloneDeck, createCard } from '../utils/deckUtils';
 import { fetchDeckFromUrl } from '../utils/fetchDeckCards';
 import type { DeckDefinition } from '../types';
@@ -8,22 +9,30 @@ import { Button } from '../components/shared/Button';
 
 export function DeckListPage() {
   const { dispatch } = useAppContext();
+  const { user, signOut } = useAuth();
   const [decks, setDecks] = useState<DeckDefinition[]>([]);
   const [newDeckName, setNewDeckName] = useState('');
   const [urlInput, setUrlInput] = useState('');
   const [urlLoading, setUrlLoading] = useState(false);
   const [urlProgress, setUrlProgress] = useState<{ current: number; total: number } | null>(null);
   const [urlError, setUrlError] = useState<string | null>(null);
+  const [listLoading, setListLoading] = useState(true);
 
-  useEffect(() => {
-    setDecks(loadDecks());
-  }, []);
+  async function refreshDecks() {
+    setListLoading(true);
+    try {
+      setDecks(await loadDecksCloud());
+    } finally {
+      setListLoading(false);
+    }
+  }
 
-  function handleCreate() {
+  useEffect(() => { refreshDecks(); }, []);
+
+  async function handleCreate() {
     const name = newDeckName.trim() || '新しいデッキ';
     const deck = createNewDeck(name);
-    saveDeck(deck);
-    setDecks(loadDecks());
+    await saveDeckCloud(deck);
     setNewDeckName('');
     dispatch({ type: 'EDIT_DECK', deckId: deck.id });
   }
@@ -43,8 +52,7 @@ export function DeckListPage() {
       if (grCardNames.length > 0) deck.grCards = grCardNames.map((n) => createCard(n));
       if (superDimCardNames.length > 0) deck.superDimCards = superDimCardNames.map((n) => createCard(n));
       deck.specialCard = specialCard;
-      saveDeck(deck);
-      setDecks(loadDecks());
+      await saveDeckCloud(deck);
       setUrlInput('');
       setUrlProgress(null);
       dispatch({ type: 'EDIT_DECK', deckId: deck.id });
@@ -55,16 +63,16 @@ export function DeckListPage() {
     }
   }
 
-  function handleDelete(id: string) {
+  async function handleDelete(id: string) {
     if (!confirm('このデッキを削除しますか？')) return;
-    deleteDeck(id);
-    setDecks(loadDecks());
+    await deleteDeckCloud(id);
+    await refreshDecks();
   }
 
-  function handleDuplicate(deck: DeckDefinition) {
+  async function handleDuplicate(deck: DeckDefinition) {
     const copy = cloneDeck(deck);
-    saveDeck(copy);
-    setDecks(loadDecks());
+    await saveDeckCloud(copy);
+    await refreshDecks();
   }
 
   function handlePlay(id: string) {
@@ -77,7 +85,13 @@ export function DeckListPage() {
 
   return (
     <div className="page deck-list-page">
-      <h1 className="page-title">デュエマ 一人回し</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <h1 className="page-title" style={{ margin: 0 }}>デュエマ 一人回し</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>{user?.email}</span>
+          <Button variant="ghost" size="sm" onClick={signOut}>ログアウト</Button>
+        </div>
+      </div>
 
       <div className="new-deck-form">
         <input
@@ -107,7 +121,9 @@ export function DeckListPage() {
         {urlError && <p className="url-import-error">{urlError}</p>}
       </div>
 
-      {decks.length === 0 ? (
+      {listLoading ? (
+        <div className="empty-state"><p>読み込み中...</p></div>
+      ) : decks.length === 0 ? (
         <div className="empty-state">
           <p>デッキがありません。新規作成してください。</p>
         </div>

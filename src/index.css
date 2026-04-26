@@ -976,3 +976,37 @@ body {
   .zone-inspector-side { width: 100%; min-width: unset; max-height: 200px; border-radius: 0 0 12px 12px; }
   .inspector-toggle-btn { writing-mode: horizontal-tb; width: auto; min-height: unset; padding: 6px 12px; }
 }
+
+
+/* ===== Login Page ===== */
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg);
+  padding: 16px;
+}
+.login-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 32px;
+  width: 100%;
+  max-width: 380px;
+}
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.login-error {
+  color: var(--color-danger);
+  font-size: 13px;
+  margin: 0;
+}
+.login-message {
+  color: var(--color-success, #4caf50);
+  font-size: 13px;
+  margin: 0;
+}

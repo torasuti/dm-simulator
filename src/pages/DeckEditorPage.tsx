@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
-import { loadDeck, saveDeck } from '../storage/localStorage';
+import { loadDeckCloud, saveDeckCloud } from '../storage/cloudStorage';
 import type { DeckDefinition } from '../types';
 import { CardListEditor } from '../components/deckEditor/CardListEditor';
 import { MacroEditor } from '../components/deckEditor/MacroEditor';
@@ -25,20 +25,19 @@ export function DeckEditorPage() {
   const [importError, setImportError] = useState('');
 
   useEffect(() => {
-    if (state.editingDeckId) {
-      setDeck(loadDeck(state.editingDeckId));
-    }
+    if (!state.editingDeckId) return;
+    loadDeckCloud(state.editingDeckId).then(setDeck);
   }, [state.editingDeckId]);
 
-  function handleSave() {
+  async function handleSave() {
     if (!deck) return;
-    saveDeck({ ...deck, updatedAt: Date.now() });
+    await saveDeckCloud({ ...deck, updatedAt: Date.now() });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   }
 
-  function handleBack() {
-    if (deck) saveDeck({ ...deck, updatedAt: Date.now() });
+  async function handleBack() {
+    if (deck) await saveDeckCloud({ ...deck, updatedAt: Date.now() });
     dispatch({ type: 'NAVIGATE', page: 'deckList' });
   }
 
@@ -56,7 +55,7 @@ export function DeckEditorPage() {
     setTimeout(() => setCopyDone(false), 2000);
   }
 
-  function handleImport() {
+  async function handleImport() {
     try {
       const json = decodeURIComponent(atob(importText.trim()));
       const imported = JSON.parse(json) as DeckDefinition;
@@ -67,7 +66,7 @@ export function DeckEditorPage() {
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
-      saveDeck(newDeck);
+      await saveDeckCloud(newDeck);
       setImportOpen(false);
       setImportText('');
       setImportError('');
