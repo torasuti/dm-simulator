@@ -81,6 +81,7 @@ export function CardToken({
       <div
         className={`card-token pickable ${picked ? 'picked' : ''}${faceDown ? ' face-down' : ''}`}
         onClick={onPick}
+        onTouchEnd={(e) => { e.preventDefault(); onPick?.(); }}
       >
         {picked && <span className="pick-check">✓</span>}
         <span className="card-token-name">{faceDown ? '●' : card.name}</span>
