@@ -42,7 +42,7 @@ function applyDestination(board: BoardState, card: Card, dest: MacroDestination)
   } else if (dest === 'superDimZone') {
     board.superDimZone = [...board.superDimZone, { ...card, isSuperDim: false }];
   } else {
-    board[dest] = [...board[dest], card];
+    board[dest as ZoneId] = [...board[dest as ZoneId], card];
   }
 }
 
@@ -52,7 +52,7 @@ function applyDestinationMultiple(board: BoardState, cards: Card[], dest: MacroD
   } else if (dest === 'deckBottom' || dest === 'deckBottomShuffle' || dest === 'deckBottomOrder') {
     board.deck = [...board.deck, ...cards];
   } else {
-    board[dest] = [...board[dest], ...cards];
+    board[dest as ZoneId] = [...board[dest as ZoneId], ...cards];
   }
 }
 
@@ -718,6 +718,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       const s = pushHistory(state);
       const board = snapshot(s.board);
       const { topCardId, topCardZone, selectedCards, destination } = s.pendingMultiStack!;
+      if (!destination) return state;
 
       const topIdx = board[topCardZone].findIndex((c) => c.id === topCardId);
       if (topIdx === -1) return state;

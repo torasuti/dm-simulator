@@ -25,10 +25,9 @@ export function useMacroRunner() {
         } else if (step.type === 'PICK_FROM_ZONE') {
           const remaining = steps.slice(i + 1);
           remainingRef.current = remaining;
-          const sources = step.sources ?? [(step as unknown as { source: string }).source as import('../types').ZoneId] ?? ['graveyard'];
           dispatch({
             type: 'BEGIN_PICK',
-            sources,
+            sources: step.sources,
             destination: step.destination,
             maxCount: step.count,
             remainingSteps: remaining,
@@ -37,10 +36,9 @@ export function useMacroRunner() {
         } else if (step.type === 'PICK_FROM_ZONE_LOOP') {
           const remaining = steps.slice(i + 1);
           remainingRef.current = remaining;
-          const sources = step.sources ?? [(step as unknown as { source: string }).source as import('../types').ZoneId] ?? ['graveyard'];
           dispatch({
             type: 'BEGIN_PICK',
-            sources,
+            sources: step.sources,
             destination: step.destination,
             maxCount: null,
             remainingSteps: remaining,

@@ -1,5 +1,5 @@
 import { useGameContext } from '../../context/GameContext';
-import { ZONE_DISPLAY_NAMES, MACRO_DEST_NAMES, ALL_ZONE_IDS } from '../../constants/zones';
+import { ZONE_DISPLAY_NAMES, MACRO_DEST_NAMES } from '../../constants/zones';
 import { CardToken } from './CardToken';
 import type { ZoneId } from '../../types';
 

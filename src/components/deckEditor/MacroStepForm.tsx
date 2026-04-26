@@ -37,15 +37,6 @@ export function MacroStepForm({ step, index, onChange, onRemove }: Props) {
         <option value="GR_SUMMON_MACRO">GR召喚</option>
       </select>
 
-      {step.type === 'DRAW' && (
-        <label className="step-inline">
-          <span>枚数</span>
-          <input type="number" min={1} max={20} value={step.n}
-            onChange={(e) => onChange({ ...step, n: parseInt(e.target.value) || 1 })}
-            className="text-input num-input" />
-        </label>
-      )}
-
       {step.type === 'MOVE_TOP_TO_ZONE' && (
         <>
           <label className="step-inline">
