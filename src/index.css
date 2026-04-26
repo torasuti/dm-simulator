@@ -916,12 +916,34 @@ body {
 
 /* タブレット（〜900px）*/
 @media (max-width: 900px) {
-  /* ゲームボード：列幅を確保して横スクロール可能に、縦の隙間を縮小 */
+  /* ゲームボード：行を均等分割して1画面に収める */
   .board-layout {
     grid-template-columns: repeat(6, minmax(90px, 1fr));
+    grid-auto-rows: 1fr;
+    align-items: stretch;
     row-gap: 0;
     overflow-x: auto;
+    overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
+  }
+
+  /* ゾーンパネル：グリッドセルを満たしてカード一覧を内部スクロール */
+  .zone-panel {
+    min-height: 0;
+    height: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .zone-stack-layout { flex: 1; min-height: 0; }
+  .zone-cards-grid,
+  .zone-cards-fan,
+  .zone-cards-row,
+  .zone-cards-spread {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
   }
 
   /* カードメニュー：右端で消えないよう下に表示 */
@@ -982,11 +1004,11 @@ body {
     padding: 5px;
   }
 
-  /* カードトークン：タッチしやすいよう最小高を確保 */
-  .card-token { min-height: 108px; }
+  /* カードトークン：高さを抑えて収まりよく */
+  .card-token { min-height: 80px; }
 
   /* ゾーンパネル */
-  .zone-panel { padding: 6px; }
+  .zone-panel { padding: 4px; }
   .zone-label { font-size: 11px; }
 
   /* ゾーン確認パネル：小さな画面では幅縮小 */

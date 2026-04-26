@@ -1,6 +1,6 @@
 import type { SpecialCardType } from '../types';
 
-const FIRESTORE_KEY = 'AIzaSyCKhH2S_r29U5olfQC6AsXaaHNhqmJMR40'
+const FIRESTORE_KEY = import.meta.env.VITE_FIRESTORE_KEY as string
 const FIRESTORE_BASE = '/proxy/firestore'
 const CARD_API_BASE = '/proxy/dm-cards'
 
