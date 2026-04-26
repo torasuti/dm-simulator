@@ -31,3 +31,21 @@ export async function deleteDeckCloud(id: string): Promise<void> {
   const { error } = await supabase.from('decks').delete().eq('id', id);
   if (error) throw error;
 }
+
+function generateShortId(): string {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+}
+
+export async function shareDeck(deck: DeckDefinition): Promise<string> {
+  const id = generateShortId();
+  const { error } = await supabase.from('shared_decks').insert({ id, data: deck });
+  if (error) throw error;
+  return id;
+}
+
+export async function loadSharedDeck(id: string): Promise<DeckDefinition | null> {
+  const { data, error } = await supabase.from('shared_decks').select('data').eq('id', id).single();
+  if (error) return null;
+  return data?.data as DeckDefinition ?? null;
+}

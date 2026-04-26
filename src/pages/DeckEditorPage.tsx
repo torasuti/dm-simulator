@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
-import { loadDeckCloud, saveDeckCloud } from '../storage/cloudStorage';
+import { loadDeckCloud, saveDeckCloud, shareDeck } from '../storage/cloudStorage';
 import type { DeckDefinition } from '../types';
 import { CardListEditor } from '../components/deckEditor/CardListEditor';
 import { MacroEditor } from '../components/deckEditor/MacroEditor';
@@ -23,6 +23,9 @@ export function DeckEditorPage() {
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState('');
   const [importError, setImportError] = useState('');
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [shareCopyDone, setShareCopyDone] = useState(false);
 
   useEffect(() => {
     if (!state.editingDeckId) return;
@@ -39,6 +42,20 @@ export function DeckEditorPage() {
   async function handleBack() {
     if (deck) await saveDeckCloud({ ...deck, updatedAt: Date.now() });
     dispatch({ type: 'NAVIGATE', page: 'deckList' });
+  }
+
+  async function handleShare() {
+    if (!deck) return;
+    setShareLoading(true);
+    try {
+      const id = await shareDeck({ ...deck, updatedAt: Date.now() });
+      setShareUrl(`${window.location.origin}/#share=${id}`);
+      setShareCopyDone(false);
+    } catch {
+      alert('共有に失敗しました');
+    } finally {
+      setShareLoading(false);
+    }
   }
 
   function handleExport() {
@@ -88,12 +105,35 @@ export function DeckEditorPage() {
           onChange={(e) => setDeck({ ...deck, name: e.target.value })}
           className="text-input deck-title-input"
         />
+        <Button variant="ghost" size="sm" onClick={handleShare} disabled={shareLoading}>{shareLoading ? '共有中...' : '🔗 URLで共有'}</Button>
         <Button variant="ghost" size="sm" onClick={handleExport}>エクスポート</Button>
         <Button variant="ghost" size="sm" onClick={() => { setImportOpen(true); setImportText(''); setImportError(''); }}>インポート</Button>
         <Button variant="primary" onClick={handleSave}>
           {saved ? '✓ 保存済み' : '保存'}
         </Button>
       </div>
+
+      {shareUrl && (
+        <div className="modal-backdrop" onClick={() => setShareUrl(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3 className="section-title">共有URL</h3>
+            <p className="zone-config-hint">このURLを相手に送ってください。ログイン不要で確認・インポートできます。</p>
+            <input
+              readOnly
+              value={shareUrl}
+              className="text-input"
+              style={{ width: '100%', fontFamily: 'monospace', fontSize: 13 }}
+              onFocus={(e) => e.target.select()}
+            />
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <Button variant="primary" onClick={() => { navigator.clipboard.writeText(shareUrl); setShareCopyDone(true); setTimeout(() => setShareCopyDone(false), 2000); }}>
+                {shareCopyDone ? '✓ コピー済み' : 'コピー'}
+              </Button>
+              <Button variant="ghost" onClick={() => setShareUrl(null)}>閉じる</Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {exportCode && (
         <div className="modal-backdrop" onClick={() => setExportCode(null)}>
