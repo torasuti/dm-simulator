@@ -17,16 +17,16 @@ function Router() {
   const { state } = useAppContext();
   if (state.page === 'game') return <GameBoardPage />;
   if (state.page === 'deckEditor') return <DeckEditorPage />;
+  if (state.page === 'login') return <LoginPage />;
   return <DeckListPage />;
 }
 
 function AppContent() {
-  const { user, loading } = useAuth();
+  const { loading } = useAuth();
   const shareId = getShareId();
 
   if (loading) return <div className="page"><p>読み込み中...</p></div>;
   if (shareId) return <SharedDeckPage shareId={shareId} />;
-  if (!user) return <LoginPage />;
   return (
     <AppProvider>
       <GameProvider>

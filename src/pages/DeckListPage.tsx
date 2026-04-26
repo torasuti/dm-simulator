@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { loadDecksCloud, saveDeckCloud, deleteDeckCloud } from '../storage/cloudStorage';
+import { loadDecks, saveDeck, deleteDeck } from '../storage/localStorage';
 import { createNewDeck, cloneDeck, createCard } from '../utils/deckUtils';
 import { fetchDeckFromUrl } from '../utils/fetchDeckCards';
 import type { DeckDefinition } from '../types';
@@ -21,7 +22,7 @@ export function DeckListPage() {
   async function refreshDecks() {
     setListLoading(true);
     try {
-      setDecks(await loadDecksCloud());
+      setDecks(user ? await loadDecksCloud() : loadDecks());
     } finally {
       setListLoading(false);
     }
@@ -32,7 +33,7 @@ export function DeckListPage() {
   async function handleCreate() {
     const name = newDeckName.trim() || '新しいデッキ';
     const deck = createNewDeck(name);
-    await saveDeckCloud(deck);
+    user ? await saveDeckCloud(deck) : saveDeck(deck);
     setNewDeckName('');
     dispatch({ type: 'EDIT_DECK', deckId: deck.id });
   }
@@ -52,7 +53,7 @@ export function DeckListPage() {
       if (grCardNames.length > 0) deck.grCards = grCardNames.map((n) => createCard(n));
       if (superDimCardNames.length > 0) deck.superDimCards = superDimCardNames.map((n) => createCard(n));
       deck.specialCard = specialCard;
-      await saveDeckCloud(deck);
+      user ? await saveDeckCloud(deck) : saveDeck(deck);
       setUrlInput('');
       setUrlProgress(null);
       dispatch({ type: 'EDIT_DECK', deckId: deck.id });
@@ -65,13 +66,13 @@ export function DeckListPage() {
 
   async function handleDelete(id: string) {
     if (!confirm('このデッキを削除しますか？')) return;
-    await deleteDeckCloud(id);
+    user ? await deleteDeckCloud(id) : deleteDeck(id);
     await refreshDecks();
   }
 
   async function handleDuplicate(deck: DeckDefinition) {
     const copy = cloneDeck(deck);
-    await saveDeckCloud(copy);
+    user ? await saveDeckCloud(copy) : saveDeck(copy);
     await refreshDecks();
   }
 
@@ -88,8 +89,14 @@ export function DeckListPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <h1 className="page-title" style={{ margin: 0 }}>デュエマ 一人回し</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>{user?.email}</span>
-          <Button variant="ghost" size="sm" onClick={signOut}>ログアウト</Button>
+          {user ? (
+            <>
+              <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>{user.email}</span>
+              <Button variant="ghost" size="sm" onClick={signOut}>ログアウト</Button>
+            </>
+          ) : (
+            <Button variant="ghost" size="sm" onClick={() => dispatch({ type: 'NAVIGATE', page: 'login' })}>ログイン</Button>
+          )}
         </div>
       </div>
 

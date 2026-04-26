@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { loadDeckCloud, saveDeckCloud, shareDeck } from '../storage/cloudStorage';
+import { loadDeck, saveDeck } from '../storage/localStorage';
+import { useAuth } from '../context/AuthContext';
 import type { DeckDefinition } from '../types';
 import { CardListEditor } from '../components/deckEditor/CardListEditor';
 import { MacroEditor } from '../components/deckEditor/MacroEditor';
@@ -14,6 +16,7 @@ type CardTab = 'main' | 'gr' | 'superDim' | 'special';
 
 export function DeckEditorPage() {
   const { state, dispatch } = useAppContext();
+  const { user } = useAuth();
   const [deck, setDeck] = useState<DeckDefinition | null>(null);
   const [tab, setTab] = useState<Tab>('cards');
   const [cardTab, setCardTab] = useState<CardTab>('main');
@@ -29,18 +32,26 @@ export function DeckEditorPage() {
 
   useEffect(() => {
     if (!state.editingDeckId) return;
-    loadDeckCloud(state.editingDeckId).then(setDeck);
-  }, [state.editingDeckId]);
+    if (user) {
+      loadDeckCloud(state.editingDeckId).then(setDeck);
+    } else {
+      setDeck(loadDeck(state.editingDeckId));
+    }
+  }, [state.editingDeckId, user]);
 
   async function handleSave() {
     if (!deck) return;
-    await saveDeckCloud({ ...deck, updatedAt: Date.now() });
+    const updated = { ...deck, updatedAt: Date.now() };
+    user ? await saveDeckCloud(updated) : saveDeck(updated);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   }
 
   async function handleBack() {
-    if (deck) await saveDeckCloud({ ...deck, updatedAt: Date.now() });
+    if (deck) {
+      const updated = { ...deck, updatedAt: Date.now() };
+      user ? await saveDeckCloud(updated) : saveDeck(updated);
+    }
     dispatch({ type: 'NAVIGATE', page: 'deckList' });
   }
 
@@ -83,7 +94,7 @@ export function DeckEditorPage() {
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
-      await saveDeckCloud(newDeck);
+      user ? await saveDeckCloud(newDeck) : saveDeck(newDeck);
       setImportOpen(false);
       setImportText('');
       setImportError('');

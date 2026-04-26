@@ -268,7 +268,7 @@ export interface GameState {
   zeroUsed: { fukkatsu: boolean; hakai: boolean; graveyard: boolean; hand: boolean };
 }
 
-export type AppPage = 'deckList' | 'game' | 'deckEditor';
+export type AppPage = 'deckList' | 'game' | 'deckEditor' | 'login';
 
 export interface AppState {
   page: AppPage;
