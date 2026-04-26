@@ -21,9 +21,11 @@ export async function loadDeckCloud(id: string): Promise<DeckDefinition | null> 
 }
 
 export async function saveDeckCloud(deck: DeckDefinition): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
   const { error } = await supabase
     .from('decks')
-    .upsert({ id: deck.id, data: deck, updated_at: new Date().toISOString() });
+    .upsert({ id: deck.id, user_id: user.id, data: deck, updated_at: new Date().toISOString() });
   if (error) throw error;
 }
 
