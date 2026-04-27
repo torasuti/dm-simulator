@@ -228,7 +228,7 @@ body {
 
 /* ── GameBoard ── */
 .game-board-page {
-  display: flex; flex-direction: column; height: 100vh;
+  display: flex; flex-direction: column; height: 100vh; height: 100dvh;
   background: #0d1b0d;
 }
 .board-layout {
@@ -365,6 +365,7 @@ body {
   font-size: 11px;
   transition: border-color 0.15s, transform 0.15s;
   user-select: none;
+  touch-action: manipulation;
   display: flex;
   flex-direction: column;
 }
@@ -373,6 +374,8 @@ body {
 .card-token[draggable="true"]:active { opacity: 0.5; }
 .card-token.tapped { transform: rotate(-90deg); }
 .card-token.face-down { background: linear-gradient(135deg, #1a1a4a, #0a0a2a); color: transparent; }
+.card-token.face-down .pick-check { color: #4caf50; }
+.card-token.pickable.face-down .card-token-name { color: rgba(255,255,255,0.5); }
 .card-token.selectable:hover { border-color: #ffd700; }
 .card-token.selected { border-color: #ffd700; background: rgba(255,215,0,0.15); }
 .card-token-name { display: block; line-height: 1.3; flex: 1; overflow: hidden; word-break: break-all; }
@@ -918,10 +921,12 @@ body {
 @media (max-width: 900px) {
   /* ゲームボード：行を均等分割して1画面に収める */
   .board-layout {
-    grid-template-columns: repeat(6, minmax(90px, 1fr));
-    grid-auto-rows: 1fr;
+    grid-template-columns: repeat(6, minmax(80px, 1fr));
+    grid-template-rows: repeat(3, 1fr);
     align-items: stretch;
     row-gap: 0;
+    column-gap: 4px;
+    padding: 4px;
     overflow-x: auto;
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
