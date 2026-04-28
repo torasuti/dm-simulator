@@ -9,9 +9,11 @@ export function PickZoneOverlay() {
   const pending = state.pendingPick;
 
   const [orderedIds, setOrderedIds] = useState<string[]>([]);
+  const [revealed, setRevealed] = useState(false);
 
   useEffect(() => {
     setOrderedIds([]);
+    setRevealed(false);
   }, [pending?.sessionId]);
 
   if (!pending) return null;
@@ -51,6 +53,11 @@ export function PickZoneOverlay() {
             <button className="overlay-minimize-btn" onClick={() => dispatch({ type: 'MINIMIZE_OVERLAY' })}>↙ 最小化</button>
           </div>
           {zoneTabs}
+          {isShieldSource && (
+            <button className="btn btn-secondary btn-sm" onClick={() => setRevealed((v) => !v)}>
+              {revealed ? '🙈 裏にする' : '👁 カードを見る'}
+            </button>
+          )}
           <div className="display-zone-cards">
             {cards.length === 0 ? (
               <p style={{ color: '#888' }}>カードがありません</p>
@@ -59,7 +66,7 @@ export function PickZoneOverlay() {
                 <CardToken
                   key={card.id}
                   card={card}
-                  faceDown={isShieldSource}
+                  faceDown={isShieldSource && !revealed}
                   pickable
                   onPick={() => dispatch({ type: 'TOGGLE_PICK_CARD', cardId: card.id })}
                 />
@@ -119,7 +126,14 @@ export function PickZoneOverlay() {
           <button className="overlay-minimize-btn" onClick={() => dispatch({ type: 'MINIMIZE_OVERLAY' })}>↙ 最小化</button>
         </div>
         {zoneTabs}
-        <p className="pick-progress">選択中: {orderedIds.length} / {maxCount}枚</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <p className="pick-progress">選択中: {orderedIds.length} / {maxCount}枚</p>
+          {isShieldSource && (
+            <button className="btn btn-secondary btn-sm" onClick={() => setRevealed((v) => !v)}>
+              {revealed ? '🙈 裏にする' : '👁 カードを見る'}
+            </button>
+          )}
+        </div>
 
         <div className="pick-ordered-layout">
           {/* 左：選択元カード */}
@@ -133,7 +147,7 @@ export function PickZoneOverlay() {
                   <CardToken
                     key={card.id}
                     card={card}
-                    faceDown={isShieldSource}
+                    faceDown={isShieldSource && !revealed}
                     pickable
                     picked={orderedIds.includes(card.id)}
                     onPick={() => !reachedMax || orderedIds.includes(card.id) ? toggleCard(card.id) : undefined}
