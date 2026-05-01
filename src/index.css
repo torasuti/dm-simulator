@@ -919,35 +919,37 @@ body {
 
 /* タブレット（〜900px）*/
 @media (max-width: 900px) {
-  /* ゲームボード：行を均等分割して1画面に収める */
+  /* ゲームボード：配置行を維持しつつ、必要な行は縦にスクロールできるようにする */
   .board-layout {
     grid-template-columns: repeat(6, minmax(80px, 1fr));
-    grid-template-rows: repeat(3, 1fr);
-    align-items: stretch;
-    row-gap: 0;
-    column-gap: 4px;
-    padding: 4px;
+    grid-template-rows: none;
+    grid-auto-rows: minmax(100px, auto);
+    align-items: start;
+    row-gap: 6px;
+    column-gap: 6px;
+    padding: 6px;
     overflow-x: auto;
-    overflow-y: hidden;
+    overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
 
-  /* ゾーンパネル：グリッドセルを満たしてカード一覧を内部スクロール */
+  /* ゾーンパネル：タブレットでは圧縮しすぎず、内容に合わせて自然に伸ばす */
   .zone-panel {
-    min-height: 0;
-    height: 100%;
+    min-height: 84px;
+    height: auto;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow: visible;
   }
-  .zone-stack-layout { flex: 1; min-height: 0; }
+  .zone-stack-layout { flex: 1; min-height: 84px; }
   .zone-cards-grid,
   .zone-cards-fan,
   .zone-cards-row,
   .zone-cards-spread {
-    flex: 1;
-    min-height: 0;
+    flex: 1 1 auto;
+    min-height: 72px;
+    max-height: 190px;
     overflow-y: auto;
   }
 
@@ -1004,7 +1006,8 @@ body {
   /* ゲームボード：最小列幅を少し縮小、縦の隙間をなくす */
   .board-layout {
     grid-template-columns: repeat(6, minmax(78px, 1fr));
-    row-gap: 0;
+    grid-auto-rows: minmax(92px, auto);
+    row-gap: 5px;
     column-gap: 5px;
     padding: 5px;
   }
