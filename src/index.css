@@ -235,10 +235,10 @@ body {
   flex: 1; min-height: 0; overflow-y: auto;
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  grid-auto-rows: minmax(90px, auto);
-  gap: 8px;
-  padding: 8px;
-  align-items: start;
+  grid-auto-rows: minmax(104px, auto);
+  gap: 4px;
+  padding: 4px;
+  align-items: stretch;
 }
 
 /* ── ZonePanel ── */
@@ -246,9 +246,11 @@ body {
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 8px;
-  padding: 8px;
-  min-height: 80px;
+  padding: 6px;
+  min-height: 100%;
   transition: border-color 0.15s, background 0.15s;
+  display: flex;
+  flex-direction: column;
 }
 .zone-panel.drag-over {
   border-color: var(--accent);
@@ -283,6 +285,7 @@ body {
 .zone-cards-stack { display: flex; align-items: center; }
 .zone-stack-layout {
   display: flex; align-items: flex-start; gap: 8px; height: 100%;
+  flex: 1;
 }
 .zone-stack-info {
   display: flex; flex-direction: column; gap: 4px; align-items: flex-start;
@@ -334,19 +337,22 @@ body {
 .zone-cards-spread {
   display: flex; gap: 6px; flex-wrap: wrap; align-items: flex-start;
   min-height: 80px;
+  flex: 1;
 }
 .zone-cards-grid {
   display: grid;
   grid-template-columns: repeat(var(--grid-cols, 5), minmax(50px, 1fr));
   gap: 6px;
   min-height: 80px;
+  flex: 1;
 }
-.zone-cards-fan { display: flex; position: relative; flex-wrap: wrap; min-height: 80px; }
+.zone-cards-fan { display: flex; position: relative; flex-wrap: wrap; min-height: 80px; flex: 1; }
 .zone-cards-fan .card-token { margin-right: -15px; }
 .zone-cards-fan .card-token:last-child { margin-right: 0; }
 .zone-cards-row {
   display: flex; flex-wrap: nowrap; align-items: flex-start;
-  overflow: visible; min-height: 100px;
+  overflow: visible; min-height: 80px;
+  flex: 1;
 }
 .zone-cards-row .card-token { flex-shrink: 0; margin-right: calc(var(--row-overlap, 0px) * -1 + 6px); z-index: 1; transition: z-index 0s, margin-right 0.15s; }
 .zone-cards-row .card-token:last-child { margin-right: 0; }
@@ -923,11 +929,11 @@ body {
   .board-layout {
     grid-template-columns: repeat(6, minmax(80px, 1fr));
     grid-template-rows: none;
-    grid-auto-rows: minmax(100px, auto);
-    align-items: start;
-    row-gap: 6px;
-    column-gap: 6px;
-    padding: 6px;
+    grid-auto-rows: minmax(96px, auto);
+    align-items: stretch;
+    row-gap: 3px;
+    column-gap: 3px;
+    padding: 3px;
     overflow-x: auto;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
@@ -935,21 +941,21 @@ body {
 
   /* ゾーンパネル：タブレットでは圧縮しすぎず、内容に合わせて自然に伸ばす */
   .zone-panel {
-    min-height: 84px;
-    height: auto;
+    min-height: 100%;
+    height: 100%;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    overflow: visible;
+    overflow: hidden;
   }
-  .zone-stack-layout { flex: 1; min-height: 84px; }
+  .zone-stack-layout { flex: 1; min-height: 80px; }
   .zone-cards-grid,
   .zone-cards-fan,
   .zone-cards-row,
   .zone-cards-spread {
     flex: 1 1 auto;
-    min-height: 72px;
-    max-height: 190px;
+    min-height: 70px;
+    max-height: 180px;
     overflow-y: auto;
   }
 
@@ -1006,10 +1012,10 @@ body {
   /* ゲームボード：最小列幅を少し縮小、縦の隙間をなくす */
   .board-layout {
     grid-template-columns: repeat(6, minmax(78px, 1fr));
-    grid-auto-rows: minmax(92px, auto);
-    row-gap: 5px;
-    column-gap: 5px;
-    padding: 5px;
+    grid-auto-rows: minmax(90px, auto);
+    row-gap: 3px;
+    column-gap: 3px;
+    padding: 3px;
   }
 
   /* カードトークン：高さを抑えて収まりよく */
