@@ -1,7 +1,7 @@
 import type { ZoneConfig, ZoneId, MacroDestination, CardMenuConfig } from '../types';
 
 export const ALL_ZONE_IDS: ZoneId[] = [
-  'deck', 'hand', 'battleZone', 'manaZone', 'graveyard', 'shieldZone', 'displayZone', 'grZone', 'superDimZone',
+  'deck', 'hand', 'battleZone', 'manaZone', 'graveyard', 'shieldZone', 'displayZone', 'grZone', 'superDimZone', 'hiddenZone',
 ];
 
 // board layout: 6列グリッド
@@ -19,6 +19,7 @@ export const DEFAULT_ZONE_CONFIGS: ZoneConfig[] = [
   { zoneId: 'displayZone', displayName: '表示ゾーン',     displayMode: 'spread', gridCols: 10, gridRows: 1, allowTap: false, visible: false, order: 6, layoutRow: 5, layoutCol: 1, colSpan: 6 },
   { zoneId: 'grZone',      displayName: 'GRゾーン',       displayMode: 'stack',  gridCols: 1,  gridRows: 1, allowTap: false, visible: false, order: 7, layoutRow: 1, layoutCol: 6, colSpan: 1 },
   { zoneId: 'superDimZone',displayName: '超次元ゾーン',   displayMode: 'stack',  gridCols: 8,  gridRows: 1, allowTap: false, visible: false, order: 8, layoutRow: 2, layoutCol: 6, colSpan: 1 },
+  { zoneId: 'hiddenZone',  displayName: '非表示ゾーン',   displayMode: 'stack',  gridCols: 1,  gridRows: 1, allowTap: false, visible: false, order: 9, layoutRow: 4, layoutCol: 6, colSpan: 1 },
 ];
 
 export const ZONE_DISPLAY_NAMES: Record<ZoneId, string> = {
@@ -31,19 +32,20 @@ export const ZONE_DISPLAY_NAMES: Record<ZoneId, string> = {
   displayZone: '表示ゾーン',
   grZone: 'GRゾーン',
   superDimZone: '超次元ゾーン',
+  hiddenZone: '非表示ゾーン',
 };
 
 export const MACRO_DESTINATIONS: MacroDestination[] = [
-  'deckTopOrder', 'deckTopShuffle', 'deckBottomOrder', 'deckBottomShuffle', 'hand', 'battleZone', 'manaZone', 'graveyard', 'shieldZone', 'superDimZone',
+  'deckTopOrder', 'deckTopShuffle', 'deckBottomOrder', 'deckBottomShuffle', 'hand', 'battleZone', 'manaZone', 'graveyard', 'shieldZone', 'hiddenZone', 'superDimZone',
 ];
 
 // カードメニュー設定用（山上/山下はまとめて1つ）
 export const CARD_MENU_DESTINATIONS: MacroDestination[] = [
-  'deckTop', 'deckBottom', 'hand', 'battleZone', 'manaZone', 'graveyard', 'shieldZone', 'superDimZone',
+  'deckTop', 'deckBottom', 'hand', 'battleZone', 'manaZone', 'graveyard', 'shieldZone', 'hiddenZone', 'superDimZone',
 ];
 
 export const DEFAULT_CARD_MENU_CONFIG: CardMenuConfig = {
-  destinations: ['deckTop', 'deckBottom', 'hand', 'battleZone', 'manaZone', 'graveyard', 'shieldZone'],
+  destinations: ['deckTop', 'deckBottom', 'hand', 'battleZone', 'manaZone', 'graveyard', 'shieldZone', 'hiddenZone'],
   layout: 'vertical',
   stackActions: [],
   multiStackDestinations: ['battleZone', 'shieldZone'],
@@ -61,6 +63,7 @@ export const MACRO_DEST_NAMES: Record<MacroDestination, string> = {
   manaZone: 'マナゾーン',
   graveyard: '墓地',
   shieldZone: 'シールドゾーン',
+  hiddenZone: '非表示ゾーン',
   superDimZone: '超次元ゾーン',
   grZoneBottom: 'GRゾーンの下',
 };

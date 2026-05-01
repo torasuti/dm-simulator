@@ -16,14 +16,19 @@ export function PickZoneOverlay() {
     setRevealed(false);
   }, [pending?.sessionId]);
 
+  useEffect(() => {
+    setRevealed(false);
+  }, [pending?.activeSource]);
+
   if (!pending) return null;
   if (state.pendingMinimized) return null;
 
   const { sources, activeSource, destination, maxCount } = pending;
   const isLoop = maxCount === null;
-  const isOrderedDest = destination === 'deckTop' || destination === 'deckBottom';
+  const isOrderedDest = destination === 'deckTop' || destination === 'deckBottom' || destination === 'deckTopOrder' || destination === 'deckBottomOrder';
   const cards = state.board[activeSource];
   const isShieldSource = activeSource === 'shieldZone';
+  const hideShieldCards = isShieldSource && !revealed;
 
   const title = isLoop
     ? `${ZONE_DISPLAY_NAMES[activeSource]}から選択 → ${MACRO_DEST_NAMES[destination]}（✕で終了）`
@@ -55,7 +60,7 @@ export function PickZoneOverlay() {
           {zoneTabs}
           {isShieldSource && (
             <button className="btn btn-secondary btn-sm" onClick={() => setRevealed((v) => !v)}>
-              {revealed ? '🙈 裏にする' : '👁 カードを見る'}
+              {revealed ? '裏にする' : '表にする'}
             </button>
           )}
           <div className="display-zone-cards">
@@ -66,7 +71,7 @@ export function PickZoneOverlay() {
                 <CardToken
                   key={card.id}
                   card={card}
-                  faceDown={isShieldSource && !revealed}
+                  faceDown={hideShieldCards}
                   pickable
                   onPick={() => dispatch({ type: 'TOGGLE_PICK_CARD', cardId: card.id })}
                 />
@@ -130,7 +135,7 @@ export function PickZoneOverlay() {
           <p className="pick-progress">選択中: {orderedIds.length} / {maxCount}枚</p>
           {isShieldSource && (
             <button className="btn btn-secondary btn-sm" onClick={() => setRevealed((v) => !v)}>
-              {revealed ? '🙈 裏にする' : '👁 カードを見る'}
+              {revealed ? '裏にする' : '表にする'}
             </button>
           )}
         </div>
@@ -147,7 +152,7 @@ export function PickZoneOverlay() {
                   <CardToken
                     key={card.id}
                     card={card}
-                    faceDown={isShieldSource && !revealed}
+                    faceDown={hideShieldCards}
                     pickable
                     picked={orderedIds.includes(card.id)}
                     onPick={() => !reachedMax || orderedIds.includes(card.id) ? toggleCard(card.id) : undefined}
@@ -163,7 +168,7 @@ export function PickZoneOverlay() {
               <div className="pick-area-label">
                 送り先順（{MACRO_DEST_NAMES[destination]}）
                 <span className="pick-area-hint">
-                  {destination === 'deckTop' ? '→ 上が先に引かれる' : '→ 上が一番下に'}
+                  {destination === 'deckTop' || destination === 'deckTopOrder' ? '→ 上が先に引かれる' : '→ 上が一番下に'}
                 </span>
               </div>
               <div className="pick-order-list">
@@ -179,7 +184,7 @@ export function PickZoneOverlay() {
                   return (
                     <div key={cardId} className="pick-order-row">
                       <span className="pick-order-num">{i + 1}</span>
-                      <span className="pick-order-name">{card.name}</span>
+                      <span className="pick-order-name">{fromZone === 'shieldZone' && !revealed ? `裏向きカード #${i + 1}` : card.name}</span>
                       {sources.length > 1 && (
                         <span className="pick-order-zone">{ZONE_DISPLAY_NAMES[fromZone]}</span>
                       )}

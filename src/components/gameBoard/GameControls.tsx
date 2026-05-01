@@ -48,6 +48,10 @@ export function GameControls() {
         className={`btn btn-sm ${state.zoneConfigs.find(z => z.zoneId === 'superDimZone')?.visible ? 'btn-primary' : 'btn-secondary'}`}
         onClick={() => dispatch({ type: 'TOGGLE_ZONE_VISIBLE', zoneId: 'superDimZone' })}
       >超次元</button>
+      <button
+        className={`btn btn-sm ${state.zoneConfigs.find(z => z.zoneId === 'hiddenZone')?.visible ? 'btn-primary' : 'btn-secondary'}`}
+        onClick={() => dispatch({ type: 'TOGGLE_ZONE_VISIBLE', zoneId: 'hiddenZone' })}
+      >非表示ゾーン</button>
       <button className="btn btn-danger btn-sm" onClick={handleReset}>
         リセット
       </button>

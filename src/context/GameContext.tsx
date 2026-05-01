@@ -4,7 +4,7 @@ import type {
   MacroAction, PendingReveal, PendingPick, PendingEvolve, PendingMultiEvolve, PendingStack, PendingMultiStack, MacroDestination, ZoneConfigPreset, AbilityStockDef, SpecialCardType,
 } from '../types';
 import { shuffle } from '../utils/deckUtils';
-import { ALL_ZONE_IDS, DEFAULT_CARD_MENU_CONFIG } from '../constants/zones';
+import { ALL_ZONE_IDS, DEFAULT_CARD_MENU_CONFIG, DEFAULT_ZONE_CONFIGS } from '../constants/zones';
 
 const MAX_HISTORY = 20;
 
@@ -15,6 +15,18 @@ function emptyBoard(): BoardState {
   const board = {} as BoardState;
   for (const z of ALL_ZONE_IDS) board[z] = [];
   return board;
+}
+
+function withDefaultZoneConfigs(configs: ZoneConfigPreset['configs']): ZoneConfigPreset['configs'] {
+  const existing = new Set(configs.map((cfg) => cfg.zoneId));
+  return [
+    ...configs,
+    ...DEFAULT_ZONE_CONFIGS.filter((cfg) => !existing.has(cfg.zoneId)).map((cfg) => ({ ...cfg })),
+  ].sort((a, b) => a.order - b.order);
+}
+
+function withDefaultCardMenuDestinations(destinations: MacroDestination[]): MacroDestination[] {
+  return destinations.includes('hiddenZone') ? destinations : [...destinations, 'hiddenZone'];
 }
 
 function snapshot(board: BoardState): BoardState {
@@ -28,11 +40,11 @@ function untapForDest(card: Card, destZoneId: ZoneId): Card {
 }
 
 function applyDestination(board: BoardState, card: Card, dest: MacroDestination): void {
-  if (card.isGR && dest !== 'battleZone' && dest !== 'grZoneBottom') {
+  if (card.isGR && dest !== 'battleZone' && dest !== 'grZoneBottom' && dest !== 'hiddenZone') {
     board.grZone = [...board.grZone, { ...card, isGR: false, tapped: false }];
     return;
   }
-  if (card.isSuperDim && dest !== 'battleZone' && dest !== 'superDimZone') {
+  if (card.isSuperDim && dest !== 'battleZone' && dest !== 'superDimZone' && dest !== 'hiddenZone') {
     board.superDimZone = [...board.superDimZone, { ...card, isSuperDim: false, tapped: false }];
     return;
   }
@@ -184,8 +196,8 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       }
 
       const presets: ZoneConfigPreset[] = (deck.zoneConfigPresets?.length
-        ? deck.zoneConfigPresets.map((p) => ({ name: p.name, configs: p.configs.map((z) => ({ ...z })) }))
-        : [{ name: '設定1', configs: deck.zoneConfigs.map((z) => ({ ...z })) }])
+        ? deck.zoneConfigPresets.map((p) => ({ name: p.name, configs: withDefaultZoneConfigs(p.configs.map((z) => ({ ...z }))) }))
+        : [{ name: '設定1', configs: withDefaultZoneConfigs(deck.zoneConfigs.map((z) => ({ ...z }))) }])
         .map((p) => ({
           ...p,
           configs: p.configs.map((z) => ({
@@ -215,7 +227,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         activePresetIndex: 0,
         macros: deck.macros.map((m) => ({ ...m })),
         cardMenuConfig: deck.cardMenuConfig
-          ? { ...deck.cardMenuConfig, destinations: [...deck.cardMenuConfig.destinations] }
+          ? { ...deck.cardMenuConfig, destinations: withDefaultCardMenuDestinations([...deck.cardMenuConfig.destinations]) }
           : { ...DEFAULT_CARD_MENU_CONFIG, destinations: [...DEFAULT_CARD_MENU_CONFIG.destinations] },
         abilityStocks,
         abilityStockValues,
@@ -272,9 +284,9 @@ function gameReducer(state: GameState, action: GameAction): GameState {
           ? [{ ...card, stack: undefined }, ...card.stack]
           : [card];
         for (let c of cardsToPlace) {
-          if (c.isGR && toZone !== 'battleZone' && toZone !== 'grZone') {
+          if (c.isGR && toZone !== 'battleZone' && toZone !== 'grZone' && toZone !== 'hiddenZone') {
             board.grZone = [...board.grZone, { ...c, isGR: false, tapped: false }];
-          } else if (c.isSuperDim && toZone !== 'battleZone' && toZone !== 'superDimZone') {
+          } else if (c.isSuperDim && toZone !== 'battleZone' && toZone !== 'superDimZone' && toZone !== 'hiddenZone') {
             board.superDimZone = [...board.superDimZone, { ...c, isSuperDim: false, tapped: false }];
           } else {
             if (toZone === 'grZone') c = { ...c, isGR: false };

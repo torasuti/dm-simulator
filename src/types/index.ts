@@ -7,7 +7,8 @@ export type ZoneId =
   | 'shieldZone'
   | 'displayZone'
   | 'grZone'
-  | 'superDimZone';
+  | 'superDimZone'
+  | 'hiddenZone';
 
 export type DisplayMode = 'stack' | 'spread' | 'grid' | 'fan' | 'counter' | 'row';
 
@@ -18,6 +19,7 @@ export type MacroDestination =
   | 'manaZone'
   | 'graveyard'
   | 'shieldZone'
+  | 'hiddenZone'
   | 'deckTop'
   | 'deckBottom'
   | 'deckTopShuffle'

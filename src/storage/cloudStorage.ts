@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import type { DeckDefinition } from '../types';
+import { migrateDeck } from './localStorage';
 
 export async function loadDecksCloud(): Promise<DeckDefinition[]> {
   const { data, error } = await supabase
@@ -7,7 +8,7 @@ export async function loadDecksCloud(): Promise<DeckDefinition[]> {
     .select('data')
     .order('updated_at', { ascending: false });
   if (error) throw error;
-  return (data ?? []).map((row) => row.data as DeckDefinition);
+  return (data ?? []).map((row) => migrateDeck(row.data as DeckDefinition));
 }
 
 export async function loadDeckCloud(id: string): Promise<DeckDefinition | null> {
@@ -17,7 +18,7 @@ export async function loadDeckCloud(id: string): Promise<DeckDefinition | null> 
     .eq('id', id)
     .single();
   if (error) return null;
-  return data?.data as DeckDefinition ?? null;
+  return data?.data ? migrateDeck(data.data as DeckDefinition) : null;
 }
 
 export async function saveDeckCloud(deck: DeckDefinition): Promise<void> {
@@ -49,5 +50,5 @@ export async function shareDeck(deck: DeckDefinition): Promise<string> {
 export async function loadSharedDeck(id: string): Promise<DeckDefinition | null> {
   const { data, error } = await supabase.from('shared_decks').select('data').eq('id', id).single();
   if (error) return null;
-  return data?.data as DeckDefinition ?? null;
+  return data?.data ? migrateDeck(data.data as DeckDefinition) : null;
 }
