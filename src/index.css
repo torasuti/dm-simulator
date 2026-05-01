@@ -13,6 +13,7 @@
   --card-border: #4a4a8a;
   --radius: 6px;
   --gap: 8px;
+  --app-viewport-height: 100dvh;
 }
 
 body {
@@ -228,7 +229,7 @@ body {
 
 /* ── GameBoard ── */
 .game-board-page {
-  display: flex; flex-direction: column; height: 100vh; height: 100dvh;
+  display: flex; flex-direction: column; height: 100vh; height: var(--app-viewport-height, 100dvh);
   background: #0d1b0d;
 }
 .board-layout {
@@ -929,11 +930,11 @@ body {
   .board-layout {
     grid-template-columns: repeat(6, minmax(80px, 1fr));
     grid-template-rows: none;
-    grid-auto-rows: minmax(96px, auto);
+    grid-auto-rows: minmax(104px, auto);
     align-items: stretch;
-    row-gap: 3px;
-    column-gap: 3px;
-    padding: 3px;
+    row-gap: 4px;
+    column-gap: 4px;
+    padding: 4px;
     overflow-x: auto;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
@@ -1012,10 +1013,10 @@ body {
   /* ゲームボード：最小列幅を少し縮小、縦の隙間をなくす */
   .board-layout {
     grid-template-columns: repeat(6, minmax(78px, 1fr));
-    grid-auto-rows: minmax(90px, auto);
-    row-gap: 3px;
-    column-gap: 3px;
-    padding: 3px;
+    grid-auto-rows: minmax(104px, auto);
+    row-gap: 4px;
+    column-gap: 4px;
+    padding: 4px;
   }
 
   /* カードトークン：高さを抑えて収まりよく */
