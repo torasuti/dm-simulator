@@ -6,6 +6,7 @@ import { DeckEditorPage } from './pages/DeckEditorPage';
 import { GameBoardPage } from './pages/GameBoardPage';
 import { LoginPage } from './pages/LoginPage';
 import { SharedDeckPage } from './pages/SharedDeckPage';
+import { SHARING_FEATURES_ENABLED } from './config/features';
 import './index.css';
 
 function getShareId(): string | null {
@@ -23,7 +24,7 @@ function Router() {
 
 function AppContent() {
   const { loading } = useAuth();
-  const shareId = getShareId();
+  const shareId = SHARING_FEATURES_ENABLED ? getShareId() : null;
 
   if (loading) return <div className="page"><p>読み込み中...</p></div>;
   if (shareId) return <SharedDeckPage shareId={shareId} />;

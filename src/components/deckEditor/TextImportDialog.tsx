@@ -1,36 +1,24 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Button } from '../shared/Button';
+import { parseDeckText, type ParsedTextDeck } from '../../utils/textDeckParser';
 
 interface Props {
-  onImport: (name: string, cardNames: string[]) => void;
+  onImport: (deck: ParsedTextDeck) => void;
   onClose: () => void;
 }
 
 export function TextImportDialog({ onImport, onClose }: Props) {
   const [deckName, setDeckName] = useState('');
   const [text, setText] = useState('');
+  const parsed = useMemo(() => parseDeckText(text, deckName.trim() || '新しいデッキ'), [text, deckName]);
+  const totalCards = parsed.cardNames.length + parsed.grCardNames.length + parsed.superDimCardNames.length;
 
   function handleImport() {
-    const lines = text
-      .split('\n')
-      .map((l) => l.trim())
-      .filter((l) => l.length > 0);
-
-    // 行頭の番号・記号を除去 ("1." "1:" "1 " "No.1" など)
-    const cardNames = lines.map((l) =>
-      l.replace(/^(No\.?\s*)?[\d０-９]+[\s.:．：、\t]+/, '').trim()
-    ).filter((n) => n.length > 0);
-
-    if (cardNames.length === 0) return;
-    onImport(deckName.trim() || '新しいデッキ', cardNames);
+    if (totalCards === 0) return;
+    onImport(parsed);
   }
 
-  const preview = text
-    .split('\n')
-    .map((l) => l.trim())
-    .filter((l) => l.length > 0)
-    .map((l) => l.replace(/^(No\.?\s*)?[\d０-９]+[\s.:．：、\t]+/, '').trim())
-    .filter((n) => n.length > 0);
+  const preview = parsed.cardNames.slice(0, 8);
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -48,25 +36,29 @@ export function TextImportDialog({ onImport, onClose }: Props) {
             onChange={(e) => setDeckName(e.target.value)}
           />
           <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-            カード名を1行1枚で貼り付けてください。<br />
-            行頭の番号（「1.」「No.1」など）は自動で除去されます。
+            カード名を1行1枚、または番号付きのデッキリストを貼り付けてください。<br />
+            複数列の番号表、GRゾーン、超次元ゾーンも読み取ります。
           </p>
           <textarea
             className="text-input"
             style={{ height: 220, resize: 'vertical', fontFamily: 'monospace', fontSize: 13 }}
-            placeholder={'1. 龍覇 ザ=デッドマン\n2. 龍覇 ザ=デッドマン\n3. ...'}
+            placeholder={'1 異端流し オニカマス 21 ウェディング・ゲート\n2 異端流し オニカマス 22 ウェディング・ゲート\n超GRゾーン\n1 堕魔 ドゥザイコ GR'}
             value={text}
             onChange={(e) => setText(e.target.value)}
           />
-          {preview.length > 0 && (
+          {totalCards > 0 && (
             <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-              {preview.length}枚 認識済み
+              メイン {parsed.cardNames.length}枚
+              {parsed.grCardNames.length > 0 && ` / GR ${parsed.grCardNames.length}枚`}
+              {parsed.superDimCardNames.length > 0 && ` / 超次元 ${parsed.superDimCardNames.length}枚`}
+              {parsed.specialCard !== 'none' && ` / 特殊 ${parsed.specialCard === 'zero' ? 'ゼーロ' : parsed.specialCard === 'dolmagedon' ? 'ドルマゲドン' : '禁断'}`}
+              {preview.length > 0 && `（例: ${preview.join('、')}）`}
             </p>
           )}
         </div>
         <div className="modal-footer">
           <Button variant="ghost" onClick={onClose}>キャンセル</Button>
-          <Button variant="primary" onClick={handleImport} disabled={preview.length === 0}>
+          <Button variant="primary" onClick={handleImport} disabled={totalCards === 0}>
             デッキ作成
           </Button>
         </div>

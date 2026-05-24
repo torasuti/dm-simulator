@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import type { User } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
+import { CLOUD_FEATURES_ENABLED } from '../config/features';
 
 interface AuthContextValue {
   user: User | null;
@@ -15,17 +15,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setUser(data.session?.user ?? null);
+    if (!CLOUD_FEATURES_ENABLED) {
+      setUser(null);
       setLoading(false);
+      return;
+    }
+
+    let active = true;
+    let unsubscribe: (() => void) | undefined;
+    import('../lib/supabase').then(({ supabase }) => {
+      if (!active) return;
+      supabase.auth.getSession().then(({ data }) => {
+        if (!active) return;
+        setUser(data.session?.user ?? null);
+        setLoading(false);
+      });
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        setUser(session?.user ?? null);
+      });
+      unsubscribe = () => subscription.unsubscribe();
+    }).catch(() => {
+      if (active) setLoading(false);
     });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-    return () => subscription.unsubscribe();
+    return () => {
+      active = false;
+      unsubscribe?.();
+    };
   }, []);
 
   async function signOut() {
+    if (!CLOUD_FEATURES_ENABLED) return;
+    const { supabase } = await import('../lib/supabase');
     await supabase.auth.signOut();
   }
 

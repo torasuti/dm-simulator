@@ -1,23 +1,36 @@
+import { useState } from 'react';
 import { useGameContext } from '../../context/GameContext';
 import { useAppContext } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
+import { CLOUD_FEATURES_ENABLED } from '../../config/features';
+import { loadDeckCloud } from '../../storage/cloudStorage';
 import { loadDeck } from '../../storage/localStorage';
 
 export function GameControls() {
   const { state, dispatch } = useGameContext();
   const { dispatch: appDispatch } = useAppContext();
+  const { user } = useAuth();
+  const cloudUser = CLOUD_FEATURES_ENABLED ? user : null;
+  const [resetting, setResetting] = useState(false);
 
-  function handleReset() {
+  async function handleReset() {
     if (!confirm('ゲームをリセットしますか？')) return;
-    const deck = loadDeck(state.deckId);
-    if (deck) {
-      dispatch({ type: 'INIT_GAME', deck });
-    } else {
-      dispatch({ type: 'RESET_GAME' });
+    setResetting(true);
+    try {
+      const deck = cloudUser ? await loadDeckCloud(state.deckId) : loadDeck(state.deckId);
+      if (deck) {
+        dispatch({ type: 'INIT_GAME', deck });
+      } else {
+        dispatch({ type: 'RESET_GAME' });
+      }
+    } finally {
+      setResetting(false);
     }
   }
 
   return (
     <div className="game-controls">
+      {state.deckName && <span className="game-controls-title">{state.deckName}</span>}
       <button
         className="btn btn-secondary btn-sm"
         onClick={() => dispatch({ type: 'UNDO' })}
@@ -52,8 +65,8 @@ export function GameControls() {
         className={`btn btn-sm ${state.zoneConfigs.find(z => z.zoneId === 'hiddenZone')?.visible ? 'btn-primary' : 'btn-secondary'}`}
         onClick={() => dispatch({ type: 'TOGGLE_ZONE_VISIBLE', zoneId: 'hiddenZone' })}
       >非表示ゾーン</button>
-      <button className="btn btn-danger btn-sm" onClick={handleReset}>
-        リセット
+      <button className="btn btn-danger btn-sm" onClick={handleReset} disabled={resetting}>
+        {resetting ? 'リセット中...' : 'リセット'}
       </button>
       <button className="btn btn-ghost btn-sm" onClick={() => appDispatch({ type: 'NAVIGATE', page: 'deckList' })}>
         ← デッキ一覧

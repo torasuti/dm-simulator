@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Card } from '../../types';
+import { DECK_URL_IMPORT_ENABLED } from '../../config/features';
 import { createCard } from '../../utils/deckUtils';
-import { fetchDeckFromUrl } from '../../utils/fetchDeckCards';
 import { Button } from '../shared/Button';
 
 interface Props {
@@ -18,15 +18,22 @@ export function CardListEditor({ cards, onChange, maxCards, label }: Props) {
   const [urlLoading, setUrlLoading] = useState(false);
   const [urlProgress, setUrlProgress] = useState<{ current: number; total: number } | null>(null);
   const [urlError, setUrlError] = useState<string | null>(null);
+  const limitReached = maxCards !== undefined && cards.length >= maxCards;
+
+  function appendCards(newCards: Card[]): number {
+    const room = maxCards === undefined ? newCards.length : Math.max(0, maxCards - cards.length);
+    const cardsToAdd = newCards.slice(0, room);
+    if (cardsToAdd.length === 0) return 0;
+    onChange([...cards, ...cardsToAdd]);
+    return cardsToAdd.length;
+  }
 
   function handleAdd() {
     const name = input.trim();
     if (!name) return;
     const count = Math.max(1, Math.min(20, parseInt(countInput) || 1));
-    const available = maxCards ? Math.max(0, maxCards - cards.length) : count;
-    const newCards = Array.from({ length: Math.min(count, available) }, () => createCard(name));
-    if (newCards.length === 0) return;
-    onChange([...cards, ...newCards]);
+    const newCards = Array.from({ length: count }, () => createCard(name));
+    if (appendCards(newCards) === 0) return;
     setInput('');
     setCountInput('1');
   }
@@ -46,7 +53,7 @@ export function CardListEditor({ cards, onChange, maxCards, label }: Props) {
         newCards.push(createCard(line));
       }
     }
-    onChange([...cards, ...newCards]);
+    appendCards(newCards);
   }
 
   async function handleUrlImport() {
@@ -56,13 +63,17 @@ export function CardListEditor({ cards, onChange, maxCards, label }: Props) {
     setUrlError(null);
     setUrlProgress(null);
     try {
+      const { fetchDeckFromUrl } = await import('../../utils/fetchDeckCards');
       const { cardNames } = await fetchDeckFromUrl(url, (current, total) => {
         setUrlProgress({ current, total });
       });
       const newCards = cardNames.map((name) => createCard(name));
-      onChange([...cards, ...newCards]);
+      const addedCount = appendCards(newCards);
       setUrlInput('');
       setUrlProgress(null);
+      if (addedCount < newCards.length && maxCards !== undefined) {
+        setUrlError(`上限のため${addedCount}枚だけ追加しました`);
+      }
     } catch (e) {
       setUrlError(e instanceof Error ? e.message : 'インポートに失敗しました');
     } finally {
@@ -109,29 +120,31 @@ export function CardListEditor({ cards, onChange, maxCards, label }: Props) {
         <Button variant="primary" onClick={handleAdd}>追加</Button>
       </div>
 
-      <details className="bulk-import">
-        <summary>URLインポート（ガチまとめ）</summary>
-        <div className="url-import-form">
-          <input
-            type="text"
-            placeholder="https://gachi-matome.com/deckrecipe-detail-dm/?tcgrevo_deck_maker_deck_id=..."
-            value={urlInput}
-            onChange={(e) => setUrlInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && !urlLoading && handleUrlImport()}
-            className="text-input flex-1"
-            disabled={urlLoading}
-          />
-          <Button variant="primary" onClick={handleUrlImport} disabled={urlLoading || !urlInput.trim()}>
-            {urlLoading ? '取得中...' : 'インポート'}
-          </Button>
-        </div>
-        {urlProgress && (
-          <p className="url-import-progress">
-            取得中: {urlProgress.current} / {urlProgress.total}枚
-          </p>
-        )}
-        {urlError && <p className="url-import-error">{urlError}</p>}
-      </details>
+      {DECK_URL_IMPORT_ENABLED && maxCards === undefined && (
+        <details className="bulk-import">
+          <summary>URLインポート（ガチまとめ）</summary>
+          <div className="url-import-form">
+            <input
+              type="text"
+              placeholder="https://gachi-matome.com/deckrecipe-detail-dm/?tcgrevo_deck_maker_deck_id=..."
+              value={urlInput}
+              onChange={(e) => setUrlInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && !urlLoading && handleUrlImport()}
+              className="text-input flex-1"
+              disabled={urlLoading}
+            />
+            <Button variant="primary" onClick={handleUrlImport} disabled={urlLoading || !urlInput.trim()}>
+              {urlLoading ? '取得中...' : 'インポート'}
+            </Button>
+          </div>
+          {urlProgress && (
+            <p className="url-import-progress">
+              取得中: {urlProgress.current} / {urlProgress.total}枚
+            </p>
+          )}
+          {urlError && <p className="url-import-error">{urlError}</p>}
+        </details>
+      )}
 
       <details className="bulk-import">
         <summary>一括インポート（テキスト）</summary>
@@ -158,7 +171,7 @@ export function CardListEditor({ cards, onChange, maxCards, label }: Props) {
             <span className="card-count-badge">{count}</span>
             <span className="card-name-text">{name}</span>
             <div className="card-row-actions">
-              <button className="icon-btn" onClick={() => onChange([...cards, createCard(name)])}>＋</button>
+              <button className="icon-btn" onClick={() => appendCards([createCard(name)])} disabled={limitReached}>＋</button>
               <button className="icon-btn" onClick={() => handleRemoveLast(name)}>－</button>
               <button className="icon-btn danger" onClick={() => handleRemoveAll(name)}>✕</button>
             </div>

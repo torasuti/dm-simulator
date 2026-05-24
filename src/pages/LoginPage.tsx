@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { CLOUD_FEATURES_ENABLED } from '../config/features';
 import { useAppContext } from '../context/AppContext';
 import { Button } from '../components/shared/Button';
 
@@ -14,10 +14,12 @@ export function LoginPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!CLOUD_FEATURES_ENABLED) return;
     setError('');
     setMessage('');
     setLoading(true);
     try {
+      const { supabase } = await import('../lib/supabase');
       if (mode === 'login') {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) setError(error.message);
@@ -33,10 +35,26 @@ export function LoginPage() {
   }
 
   async function handleGoogle() {
+    if (!CLOUD_FEATURES_ENABLED) return;
+    const { supabase } = await import('../lib/supabase');
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: window.location.origin },
     });
+  }
+
+  if (!CLOUD_FEATURES_ENABLED) {
+    return (
+      <div className="login-page">
+        <div className="login-card">
+          <h1 className="page-title" style={{ marginBottom: 8 }}>デュエマ 一人回し</h1>
+          <p className="zone-config-hint">公開版は端末内保存のみです。</p>
+          <Button variant="primary" onClick={() => dispatch({ type: 'NAVIGATE', page: 'deckList' })}>
+            デッキ一覧へ
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (

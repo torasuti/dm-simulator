@@ -5,7 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:private": "vite --mode private",
+    "dev:public": "vite --mode public",
     "build": "tsc -b && vite build",
+    "build:private": "tsc -b && vite build --mode private",
+    "build:public": "tsc -b && vite build --mode public",
     "lint": "eslint .",
     "preview": "vite preview"
   },

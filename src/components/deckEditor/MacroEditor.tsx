@@ -6,22 +6,25 @@ import { Button } from '../shared/Button';
 interface Props {
   macros: Macro[];
   onChange: (macros: Macro[]) => void;
+  maxMacros?: number | null;
 }
 
 function newMacro(): Macro {
   return { id: crypto.randomUUID(), name: '新しいマクロ', steps: [] };
 }
 
-export function MacroEditor({ macros, onChange }: Props) {
+export function MacroEditor({ macros, onChange, maxMacros }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const editing = macros.find((m) => m.id === editingId);
+  const limitReached = maxMacros !== undefined && maxMacros !== null && macros.length >= maxMacros;
 
   function updateMacro(updated: Macro) {
     onChange(macros.map((m) => (m.id === updated.id ? updated : m)));
   }
 
   function handleAdd() {
+    if (limitReached) return;
     const m = newMacro();
     onChange([...macros, m]);
     setEditingId(m.id);
@@ -57,7 +60,12 @@ export function MacroEditor({ macros, onChange }: Props) {
             <button className="icon-btn danger" onClick={() => handleDelete(m.id)}>🗑</button>
           </div>
         ))}
-        <Button variant="primary" onClick={handleAdd}>＋ マクロ追加</Button>
+        <Button variant="primary" onClick={handleAdd} disabled={limitReached}>＋ マクロ追加</Button>
+        {maxMacros !== undefined && maxMacros !== null && (
+          <span style={{ color: limitReached ? 'var(--accent)' : 'var(--text-muted)', fontSize: 12 }}>
+            {macros.length} / {maxMacros}
+          </span>
+        )}
       </div>
 
       {editing && (
