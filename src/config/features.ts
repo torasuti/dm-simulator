@@ -1,7 +1,9 @@
 type AppVariant = 'private' | 'public';
 
 export const APP_VARIANT: AppVariant =
-  import.meta.env.VITE_APP_VARIANT === 'public' ? 'public' : 'private';
+  import.meta.env.MODE === 'public' || import.meta.env.VITE_APP_VARIANT === 'public'
+    ? 'public'
+    : 'private';
 
 export const CLOUD_FEATURES_ENABLED = APP_VARIANT === 'private';
 export const SHARING_FEATURES_ENABLED = CLOUD_FEATURES_ENABLED;
