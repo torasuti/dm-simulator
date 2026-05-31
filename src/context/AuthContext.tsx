@@ -9,6 +9,7 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+const AUTH_LOADING_TIMEOUT_MS = 5000;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -23,22 +24,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     let active = true;
     let unsubscribe: (() => void) | undefined;
+    const loadingTimeout = setTimeout(() => {
+      if (!active) return;
+      setUser(null);
+      setLoading(false);
+    }, AUTH_LOADING_TIMEOUT_MS);
+
     import('../lib/supabase').then(({ supabase }) => {
       if (!active) return;
-      supabase.auth.getSession().then(({ data }) => {
-        if (!active) return;
-        setUser(data.session?.user ?? null);
-        setLoading(false);
-      });
+      supabase.auth.getSession()
+        .then(({ data }) => {
+          if (!active) return;
+          setUser(data.session?.user ?? null);
+        })
+        .catch(() => {
+          if (!active) return;
+          setUser(null);
+        })
+        .finally(() => {
+          clearTimeout(loadingTimeout);
+          if (active) setLoading(false);
+        });
       const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
         setUser(session?.user ?? null);
       });
       unsubscribe = () => subscription.unsubscribe();
     }).catch(() => {
+      clearTimeout(loadingTimeout);
       if (active) setLoading(false);
     });
     return () => {
       active = false;
+      clearTimeout(loadingTimeout);
       unsubscribe?.();
     };
   }, []);
