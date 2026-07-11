@@ -81,6 +81,12 @@ export interface RevealAndSelectAction {
   destinations: MacroDestination[];
 }
 
+export interface LookAndArrangeAction {
+  type: 'LOOK_AND_ARRANGE';
+  n: number;
+  destinations: MacroDestination[];
+}
+
 // ゾーンを開いてN枚選んで送る
 export interface PickFromZoneAction {
   type: 'PICK_FROM_ZONE';
@@ -92,6 +98,12 @@ export interface PickFromZoneAction {
 // ゾーンを開いてXを押すまで何枚でも選んで送る
 export interface PickFromZoneLoopAction {
   type: 'PICK_FROM_ZONE_LOOP';
+  sources: ZoneId[];
+  destination: MacroDestination;
+}
+
+export interface PickFromZoneAllAction {
+  type: 'PICK_FROM_ZONE_ALL';
   sources: ZoneId[];
   destination: MacroDestination;
 }
@@ -130,8 +142,10 @@ export interface MultiEvolveLoopAction {
 export type MacroAction =
   | MoveTopToZoneAction
   | RevealAndSelectAction
+  | LookAndArrangeAction
   | PickFromZoneAction
   | PickFromZoneLoopAction
+  | PickFromZoneAllAction
   | ShuffleAction
   | GRSummonAction
   | MultiEvolveAction
@@ -212,6 +226,14 @@ export interface PendingReveal {
   remainingSteps: MacroAction[];
 }
 
+export interface PendingLookArrange {
+  cards: Card[];
+  destinations: MacroDestination[];
+  assignments: Record<string, MacroDestination>;
+  order: string[];
+  remainingSteps: MacroAction[];
+}
+
 // ゾーンからカードを選ぶ待機状態
 export interface PendingPick {
   sessionId: string;
@@ -257,6 +279,7 @@ export interface GameState {
   abilityStockValues: Record<string, number>;
   history: BoardState[];
   pendingReveal: PendingReveal | null;
+  pendingLookArrange: PendingLookArrange | null;
   pendingPick: PendingPick | null;
   pendingEvolve: PendingEvolve | null;
   pendingMultiEvolve: PendingMultiEvolve | null;

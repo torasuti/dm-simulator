@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useGameContext } from '../context/GameContext';
-import type { Macro, MacroAction } from '../types';
+import type { Macro, MacroAction, MacroDestination } from '../types';
 
 export function useMacroRunner() {
   const { state, dispatch } = useGameContext();
@@ -22,6 +22,19 @@ export function useMacroRunner() {
           const cards = state.board.deck.slice(0, step.n);
           dispatch({ type: 'BEGIN_REVEAL', cards, destinations: step.destinations, remainingSteps: remaining });
           return;
+        } else if (step.type === 'LOOK_AND_ARRANGE') {
+          const remaining = steps.slice(i + 1);
+          remainingRef.current = remaining;
+          dispatch({ type: 'MOVE_TOP_TO_ZONE', n: step.n, from: 'deck', to: 'displayZone' });
+          const cards = state.board.deck.slice(0, step.n);
+          const destinations: MacroDestination[] = step.destinations.length > 0 ? step.destinations : ['deckBottom'];
+          dispatch({
+            type: 'BEGIN_LOOK_ARRANGE',
+            cards,
+            destinations,
+            remainingSteps: remaining,
+          });
+          return;
         } else if (step.type === 'PICK_FROM_ZONE') {
           const remaining = steps.slice(i + 1);
           remainingRef.current = remaining;
@@ -33,6 +46,9 @@ export function useMacroRunner() {
             remainingSteps: remaining,
           });
           return;
+        } else if (step.type === 'PICK_FROM_ZONE_ALL') {
+          dispatch({ type: 'MOVE_ALL_FROM_ZONES', sources: step.sources, to: step.destination });
+          i++;
         } else if (step.type === 'PICK_FROM_ZONE_LOOP') {
           const remaining = steps.slice(i + 1);
           remainingRef.current = remaining;
@@ -82,12 +98,12 @@ export function useMacroRunner() {
   );
 
   useEffect(() => {
-    if (state.pendingReveal === null && state.pendingPick === null && state.pendingEvolve === null && state.pendingMultiEvolve === null && remainingRef.current.length > 0) {
+    if (state.pendingReveal === null && state.pendingLookArrange === null && state.pendingPick === null && state.pendingEvolve === null && state.pendingMultiEvolve === null && remainingRef.current.length > 0) {
       const steps = remainingRef.current;
       remainingRef.current = [];
       executeSteps(steps);
     }
-  }, [state.pendingReveal, state.pendingPick, state.pendingEvolve, state.pendingMultiEvolve, executeSteps]);
+  }, [state.pendingReveal, state.pendingLookArrange, state.pendingPick, state.pendingEvolve, state.pendingMultiEvolve, executeSteps]);
 
   const runMacro = useCallback(
     (macro: Macro) => {

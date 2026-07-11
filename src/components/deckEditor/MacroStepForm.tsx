@@ -10,15 +10,21 @@ interface Props {
 
 const SOURCE_ZONES: ZoneId[] = ALL_ZONE_IDS.filter((z) => z !== 'displayZone');
 
+function nextDestination(destinations: MacroDestination[]): MacroDestination {
+  return MACRO_DESTINATIONS.find((dest) => !destinations.includes(dest)) ?? destinations[destinations.length - 1] ?? 'deckBottom';
+}
+
 export function MacroStepForm({ step, index, onChange, onRemove }: Props) {
   // 表示用の正規化タイプ（LOOP系は統一タイプとして扱う）
   const normalizedType = step.type === 'PICK_FROM_ZONE_LOOP' ? 'PICK_FROM_ZONE'
+    : step.type === 'PICK_FROM_ZONE_ALL' ? 'PICK_FROM_ZONE'
     : step.type === 'MULTI_EVOLVE_LOOP' ? 'MULTI_EVOLVE'
     : step.type;
 
   function handleTypeChange(type: string) {
     if (type === 'MOVE_TOP_TO_ZONE') onChange({ type: 'MOVE_TOP_TO_ZONE', n: 1, destination: 'graveyard' });
     else if (type === 'REVEAL_AND_SELECT') onChange({ type: 'REVEAL_AND_SELECT', n: 3, destinations: ['hand', 'graveyard', 'manaZone'] });
+    else if (type === 'LOOK_AND_ARRANGE') onChange({ type: 'LOOK_AND_ARRANGE', n: 2, destinations: ['hand', 'manaZone', 'deckBottom'] });
     else if (type === 'PICK_FROM_ZONE') onChange({ type: 'PICK_FROM_ZONE', sources: ['graveyard'], count: 1, destination: 'deckBottom' });
     else if (type === 'SHUFFLE') onChange({ type: 'SHUFFLE', zoneId: 'deck' });
     else if (type === 'GR_SUMMON_MACRO') onChange({ type: 'GR_SUMMON_MACRO' });
@@ -32,6 +38,7 @@ export function MacroStepForm({ step, index, onChange, onRemove }: Props) {
       <select value={normalizedType} onChange={(e) => handleTypeChange(e.target.value)} className="select-input">
         <option value="MOVE_TOP_TO_ZONE">山上N枚を移動</option>
         <option value="REVEAL_AND_SELECT">山上N枚公開して選択</option>
+        <option value="LOOK_AND_ARRANGE">山札を見る・振り分け</option>
         <option value="PICK_FROM_ZONE">ゾーン選択</option>
         <option value="MULTI_EVOLVE">進化</option>
         <option value="SHUFFLE">シャッフル</option>
@@ -93,7 +100,43 @@ export function MacroStepForm({ step, index, onChange, onRemove }: Props) {
         </>
       )}
 
-      {(step.type === 'PICK_FROM_ZONE' || step.type === 'PICK_FROM_ZONE_LOOP') && (
+      {step.type === 'LOOK_AND_ARRANGE' && (
+        <>
+          <label className="step-inline">
+            <span>見る枚数</span>
+            <input type="number" min={1} max={20} value={step.n}
+              onChange={(e) => onChange({ ...step, n: parseInt(e.target.value) || 1 })}
+              className="text-input num-input" />
+          </label>
+          <div className="destinations-editor">
+            <span className="destinations-label">選択できる送り先</span>
+            {step.destinations.map((dest, i) => (
+              <div key={i} className="destination-row">
+                <span className="dest-index">{i + 1}</span>
+                <select value={dest}
+                  onChange={(e) => {
+                    const next = [...step.destinations];
+                    next[i] = e.target.value as MacroDestination;
+                    onChange({ ...step, destinations: next });
+                  }}
+                  className="select-input">
+                  {MACRO_DESTINATIONS.map((d) => <option key={d} value={d}>{MACRO_DEST_NAMES[d]}</option>)}
+                </select>
+                {step.destinations.length > 1 && (
+                  <button className="icon-btn danger"
+                    onClick={() => onChange({ ...step, destinations: step.destinations.filter((_, j) => j !== i) })}>✕</button>
+                )}
+              </div>
+            ))}
+            <button className="btn btn-secondary btn-sm"
+              onClick={() => onChange({ ...step, destinations: [...step.destinations, nextDestination(step.destinations)] })}>
+              + 送り先を追加
+            </button>
+          </div>
+        </>
+      )}
+
+      {(step.type === 'PICK_FROM_ZONE' || step.type === 'PICK_FROM_ZONE_LOOP' || step.type === 'PICK_FROM_ZONE_ALL') && (
         <>
           <div className="step-inline step-sources">
             <span>開くゾーン（複数可）</span>
@@ -118,6 +161,28 @@ export function MacroStepForm({ step, index, onChange, onRemove }: Props) {
               })}
             </div>
           </div>
+          <label className="step-inline">
+            <span>選び方</span>
+            <select
+              value={step.type === 'PICK_FROM_ZONE_ALL' ? 'all' : step.type === 'PICK_FROM_ZONE_LOOP' ? 'loop' : 'count'}
+              onChange={(e) => {
+                const sources = (step as { sources?: ZoneId[] }).sources ?? ['graveyard'];
+                const dest = step.destination;
+                if (e.target.value === 'all') {
+                  onChange({ type: 'PICK_FROM_ZONE_ALL', sources, destination: dest });
+                } else if (e.target.value === 'loop') {
+                  onChange({ type: 'PICK_FROM_ZONE_LOOP', sources, destination: dest });
+                } else {
+                  onChange({ type: 'PICK_FROM_ZONE', sources, count: step.type === 'PICK_FROM_ZONE' ? step.count : 1, destination: dest });
+                }
+              }}
+              className="select-input"
+            >
+              <option value="count">枚数指定</option>
+              <option value="all">すべて</option>
+              <option value="loop">1枚ずつ連続</option>
+            </select>
+          </label>
           {step.type === 'PICK_FROM_ZONE' && (
             <label className="step-inline">
               <span>選ぶ枚数</span>
@@ -126,22 +191,6 @@ export function MacroStepForm({ step, index, onChange, onRemove }: Props) {
                 className="text-input num-input" />
             </label>
           )}
-          <label className="step-inline">
-            <input
-              type="checkbox"
-              checked={step.type === 'PICK_FROM_ZONE_LOOP'}
-              onChange={(e) => {
-                const sources = (step as { sources?: ZoneId[] }).sources ?? ['graveyard'];
-                const dest = step.destination;
-                if (e.target.checked) {
-                  onChange({ type: 'PICK_FROM_ZONE_LOOP', sources, destination: dest });
-                } else {
-                  onChange({ type: 'PICK_FROM_ZONE', sources, count: 1, destination: dest });
-                }
-              }}
-            />
-            ∞（制限なし）
-          </label>
           <label className="step-inline">
             <span>送り先</span>
             <select value={step.destination}

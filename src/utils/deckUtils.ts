@@ -30,8 +30,14 @@ export function createNewDeck(name: string): DeckDefinition {
 }
 
 export function cloneDeck(deck: DeckDefinition): DeckDefinition {
+  const deckWithoutInitialBoard = { ...deck } as DeckDefinition & {
+    initialBoardPresets?: unknown;
+    activeInitialBoardPresetId?: unknown;
+  };
+  delete deckWithoutInitialBoard.initialBoardPresets;
+  delete deckWithoutInitialBoard.activeInitialBoardPresetId;
   return {
-    ...deck,
+    ...deckWithoutInitialBoard,
     id: crypto.randomUUID(),
     name: `${deck.name} (コピー)`,
     cards: deck.cards.map((c) => ({ ...c, id: crypto.randomUUID() })),
