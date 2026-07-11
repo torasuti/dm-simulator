@@ -26,9 +26,16 @@ function migrateDestinations(destinations: MacroDestination[] | undefined): Macr
   const current = destinations ?? [...DEFAULT_CARD_MENU_CONFIG.destinations];
   return current.includes('hiddenZone') ? current : [...current, 'hiddenZone'];
 }
-
 function migrateMacroStep(step: MacroAction): MacroAction {
-  if (step.type === 'PICK_FROM_ZONE' || step.type === 'PICK_FROM_ZONE_LOOP') {
+  if (step.type === 'LOOK_AND_ARRANGE') {
+    const rest = { ...step } as Extract<MacroAction, { type: 'LOOK_AND_ARRANGE' }> & { defaultDestination?: MacroDestination };
+    delete rest.defaultDestination;
+    return {
+      ...rest,
+      destinations: rest.destinations.length > 0 ? rest.destinations : ['deckBottom'],
+    } as MacroAction;
+  }
+  if (step.type === 'PICK_FROM_ZONE' || step.type === 'PICK_FROM_ZONE_LOOP' || step.type === 'PICK_FROM_ZONE_ALL') {
     const s = step as MacroAction & { source?: string };
     if (!step.sources && s.source) {
       return { ...step, sources: [s.source as import('../types').ZoneId] } as MacroAction;
@@ -54,8 +61,14 @@ function migrateAbilityStock(s: AbilityStockDef): AbilityStockDef {
 
 export function migrateDeck(deck: DeckDefinition): DeckDefinition {
   const baseMenu = deck.cardMenuConfig ?? DEFAULT_CARD_MENU_CONFIG;
+  const deckWithoutInitialBoard = { ...deck } as DeckDefinition & {
+    initialBoardPresets?: unknown;
+    activeInitialBoardPresetId?: unknown;
+  };
+  delete deckWithoutInitialBoard.initialBoardPresets;
+  delete deckWithoutInitialBoard.activeInitialBoardPresetId;
   return {
-    ...deck,
+    ...deckWithoutInitialBoard,
     zoneConfigs: migrateZoneConfigs(deck.zoneConfigs),
     zoneConfigPresets: (deck.zoneConfigPresets ?? [{ name: '設定1', configs: deck.zoneConfigs }]).map((p) => ({
       ...p,

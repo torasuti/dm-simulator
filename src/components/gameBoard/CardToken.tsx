@@ -76,6 +76,8 @@ export function CardToken({
     },
   } : {};
 
+  const menuLayerClass = menuOpen || viewingStack ? ' menu-open' : '';
+
   if (pickable) {
     return (
       <div
@@ -93,7 +95,7 @@ export function CardToken({
   if (faceDown) {
     return (
       <div
-        className={`card-token face-down${isStackTarget ? ' stack-target' : ''}`}
+        className={`card-token face-down${isStackTarget ? ' stack-target' : ''}${menuLayerClass}`}
         draggable={!!onDragStart}
         onDragStart={(e) => { onDragStart?.(e); }}
         {...touchHandlers}
@@ -110,6 +112,7 @@ export function CardToken({
           <div
             ref={menuRef}
             className={`card-menu card-menu-${menuLayout}`}
+            onPointerDown={(e) => e.stopPropagation()}
             onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
           >
@@ -151,7 +154,7 @@ export function CardToken({
 
   return (
     <div
-      className={`card-token ${card.tapped ? 'tapped' : ''}${isStackTarget ? ' stack-target' : ''}`}
+      className={`card-token ${card.tapped ? 'tapped' : ''}${isStackTarget ? ' stack-target' : ''}${menuLayerClass}`}
       draggable={!!onDragStart}
       onDragStart={(e) => { setMenuOpen(false); onDragStart?.(e); }}
       {...touchHandlers}
@@ -173,6 +176,8 @@ export function CardToken({
         <div
           ref={menuRef}
           className={`card-menu card-menu-${menuLayout}`}
+          onPointerDown={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
         >
           {allowTap && (
@@ -203,7 +208,12 @@ export function CardToken({
         </div>
       )}
       {viewingStack && card.stack && (
-        <div className="stack-viewer" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="stack-viewer"
+          onPointerDown={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="stack-viewer-header">
             <span>重なっているカード</span>
             <button className="close-btn" onClick={() => setViewingStack(false)}>✕</button>

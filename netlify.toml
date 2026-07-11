@@ -1,18 +1,10 @@
 [build]
-  command = "npm run build"
+  command = "npm run build:public"
   publish = "dist"
 
-[[redirects]]
-  from = "/proxy/dm-cards/*"
-  to = "https://d23r8jlqp3e2gc.cloudfront.net/api/v1/dm/cards/:splat"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/proxy/firestore/*"
-  to = "https://firestore.googleapis.com/v1/projects/prod-deckmaker-8345f/databases/(default)/documents/:splat"
-  status = 200
-  force = true
+[build.environment]
+  NODE_VERSION = "22.12.0"
+  VITE_APP_VARIANT = "public"
 
 [[redirects]]
   from = "/*"

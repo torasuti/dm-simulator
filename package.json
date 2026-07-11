@@ -5,16 +5,18 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:private": "vite --mode private",
+    "dev:public": "vite --mode public",
     "build": "tsc -b && vite build",
+    "build:private": "tsc -b && vite build --mode private",
+    "build:public": "tsc -b && vite build --mode public",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.104.1",
-    "pdfjs-dist": "^5.6.205",
     "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "tesseract.js": "^7.0.0"
+    "react-dom": "^19.2.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",

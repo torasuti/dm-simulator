@@ -1,14 +1,29 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import https from 'node:https'
+import { fileURLToPath } from 'node:url'
 
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [
-    react(),
-    {
-      name: 'dm-card-proxy',
-      configureServer(server) {
+export default defineConfig(({ mode }) => {
+  const publicAliases = mode === 'public'
+    ? [
+        { find: '../lib/supabase', replacement: fileURLToPath(new URL('./src/lib/supabase.public.ts', import.meta.url)) },
+        { find: '../storage/cloudStorage', replacement: fileURLToPath(new URL('./src/storage/cloudStorage.public.ts', import.meta.url)) },
+        { find: '../../storage/cloudStorage', replacement: fileURLToPath(new URL('./src/storage/cloudStorage.public.ts', import.meta.url)) },
+        { find: '../utils/fetchDeckCards', replacement: fileURLToPath(new URL('./src/utils/fetchDeckCards.public.ts', import.meta.url)) },
+        { find: '../../utils/fetchDeckCards', replacement: fileURLToPath(new URL('./src/utils/fetchDeckCards.public.ts', import.meta.url)) },
+      ]
+    : []
+
+  return {
+    resolve: {
+      alias: publicAliases,
+    },
+    plugins: [
+      react(),
+      mode !== 'public' && {
+        name: 'dm-card-proxy',
+        configureServer(server) {
         // カードAPI: /proxy/dm-cards/{id} → CloudFront
         server.middlewares.use('/proxy/dm-cards', (req, res) => {
           const cardId = req.url?.replace(/^\//, '') ?? ''
@@ -60,7 +75,8 @@ export default defineConfig({
           proxyReq.on('error', () => { res.writeHead(502); res.end('proxy error') })
           proxyReq.end()
         })
+        },
       },
-    },
-  ],
+    ],
+  }
 })

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { SHARING_FEATURES_ENABLED } from '../config/features';
 import { loadSharedDeck, saveDeckCloud } from '../storage/cloudStorage';
 import { useAuth } from '../context/AuthContext';
 import type { DeckDefinition } from '../types';
@@ -15,6 +16,10 @@ export function SharedDeckPage({ shareId }: Props) {
   const [imported, setImported] = useState(false);
 
   useEffect(() => {
+    if (!SHARING_FEATURES_ENABLED) {
+      setLoading(false);
+      return;
+    }
     loadSharedDeck(shareId).then((d) => { setDeck(d); setLoading(false); });
   }, [shareId]);
 
@@ -38,6 +43,13 @@ export function SharedDeckPage({ shareId }: Props) {
 
   if (loading) return <div className="page"><p>読み込み中...</p></div>;
 
+  if (!SHARING_FEATURES_ENABLED) return (
+    <div className="page" style={{ textAlign: 'center', paddingTop: 80 }}>
+      <p>公開版では共有リンクを利用できません。</p>
+      <Button variant="ghost" onClick={handleClose}>トップへ</Button>
+    </div>
+  );
+
   if (!deck) return (
     <div className="page" style={{ textAlign: 'center', paddingTop: 80 }}>
       <p>デッキが見つかりませんでした。</p>
@@ -48,6 +60,9 @@ export function SharedDeckPage({ shareId }: Props) {
   return (
     <div className="page" style={{ maxWidth: 480, margin: '0 auto', paddingTop: 40 }}>
       <h1 className="page-title">デッキ共有</h1>
+      <p className="zone-config-hint" style={{ marginBottom: 16 }}>
+        この共有リンクは、URLを知っている人なら誰でも開けます。公開したくない情報は含めないようにしてください。
+      </p>
       <div className="deck-card" style={{ marginBottom: 24 }}>
         <div className="deck-card-info">
           <span className="deck-name">{deck.name}</span>

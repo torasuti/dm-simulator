@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
+import { CLOUD_FEATURES_ENABLED, SHARING_FEATURES_ENABLED, PUBLIC_MACRO_LIMIT_PER_DECK } from '../config/features';
 import { loadDeckCloud, saveDeckCloud, shareDeck, loadSharedDeck } from '../storage/cloudStorage';
 import { loadDeck, saveDeck } from '../storage/localStorage';
 import { useAuth } from '../context/AuthContext';
@@ -15,9 +16,21 @@ import { Button } from '../components/shared/Button';
 type Tab = 'cards' | 'macros' | 'zones' | 'cardmenu';
 type CardTab = 'main' | 'gr' | 'superDim' | 'special';
 
+function applyPublicMacroLimit(deck: DeckDefinition | null): DeckDefinition | null {
+  if (!deck || PUBLIC_MACRO_LIMIT_PER_DECK === null || deck.macros.length <= PUBLIC_MACRO_LIMIT_PER_DECK) {
+    return deck;
+  }
+  return { ...deck, macros: deck.macros.slice(0, PUBLIC_MACRO_LIMIT_PER_DECK) };
+}
+
+function limitMacros(macros: DeckDefinition['macros']): DeckDefinition['macros'] {
+  return PUBLIC_MACRO_LIMIT_PER_DECK === null ? macros : macros.slice(0, PUBLIC_MACRO_LIMIT_PER_DECK);
+}
+
 export function DeckEditorPage() {
   const { state, dispatch } = useAppContext();
   const { user } = useAuth();
+  const cloudUser = CLOUD_FEATURES_ENABLED ? user : null;
   const [deck, setDeck] = useState<DeckDefinition | null>(null);
   const [tab, setTab] = useState<Tab>('cards');
   const [cardTab, setCardTab] = useState<CardTab>('main');
@@ -35,25 +48,36 @@ export function DeckEditorPage() {
 
   useEffect(() => {
     if (!state.editingDeckId) return;
-    if (user) {
-      loadDeckCloud(state.editingDeckId).then(setDeck);
+    if (cloudUser) {
+      loadDeckCloud(state.editingDeckId).then((loaded) => setDeck(applyPublicMacroLimit(loaded)));
     } else {
-      setDeck(loadDeck(state.editingDeckId));
+      setDeck(applyPublicMacroLimit(loadDeck(state.editingDeckId)));
     }
-  }, [state.editingDeckId, user]);
+  }, [state.editingDeckId, cloudUser]);
 
   async function handleSave() {
     if (!deck) return;
-    const updated = { ...deck, updatedAt: Date.now() };
-    user ? await saveDeckCloud(updated) : saveDeck(updated);
+    const limited = applyPublicMacroLimit(deck)!;
+    const updated = { ...limited, updatedAt: Date.now() };
+    if (cloudUser) {
+      await saveDeckCloud(updated);
+    } else {
+      saveDeck(updated);
+    }
+    setDeck(updated);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   }
 
   async function handleBack() {
     if (deck) {
-      const updated = { ...deck, updatedAt: Date.now() };
-      user ? await saveDeckCloud(updated) : saveDeck(updated);
+      const limited = applyPublicMacroLimit(deck)!;
+      const updated = { ...limited, updatedAt: Date.now() };
+      if (cloudUser) {
+        await saveDeckCloud(updated);
+      } else {
+        saveDeck(updated);
+      }
     }
     dispatch({ type: 'NAVIGATE', page: 'deckList' });
   }
@@ -111,13 +135,17 @@ export function DeckEditorPage() {
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
-      user ? await saveDeckCloud(newDeck) : saveDeck(newDeck);
+      if (cloudUser) {
+        await saveDeckCloud(newDeck);
+      } else {
+        saveDeck(newDeck);
+      }
       setImportOpen(false);
       setImportText('');
       setImportError('');
       dispatch({ type: 'EDIT_DECK', deckId: newDeck.id });
     } catch {
-      setImportError('コードが無効です。正しい6文字のコードを入力してください。');
+      setImportError('コードが無効です。正しい共有コードを入力してください。');
     } finally {
       setImportLoading(false);
     }
@@ -135,19 +163,25 @@ export function DeckEditorPage() {
           onChange={(e) => setDeck({ ...deck, name: e.target.value })}
           className="text-input deck-title-input"
         />
-        <Button variant="ghost" size="sm" onClick={handleShare} disabled={shareLoading}>{shareLoading ? '共有中...' : '🔗 URLで共有'}</Button>
-        <Button variant="ghost" size="sm" onClick={handleExport} disabled={exportLoading}>{exportLoading ? '生成中...' : 'コード発行'}</Button>
-        <Button variant="ghost" size="sm" onClick={() => { setImportOpen(true); setImportText(''); setImportError(''); }}>コードで取得</Button>
+        {SHARING_FEATURES_ENABLED && (
+          <>
+            <Button variant="ghost" size="sm" onClick={handleShare} disabled={shareLoading}>{shareLoading ? '共有中...' : '🔗 URLで共有'}</Button>
+            <Button variant="ghost" size="sm" onClick={handleExport} disabled={exportLoading}>{exportLoading ? '生成中...' : 'コード発行'}</Button>
+            <Button variant="ghost" size="sm" onClick={() => { setImportOpen(true); setImportText(''); setImportError(''); }}>コードで取得</Button>
+          </>
+        )}
         <Button variant="primary" onClick={handleSave}>
           {saved ? '✓ 保存済み' : '保存'}
         </Button>
       </div>
 
-      {shareUrl && (
+      {SHARING_FEATURES_ENABLED && shareUrl && (
         <div className="modal-backdrop" onClick={() => setShareUrl(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h3 className="section-title">共有URL</h3>
-            <p className="zone-config-hint">このURLを相手に送ってください。ログイン不要で確認・インポートできます。</p>
+            <p className="zone-config-hint">
+              この共有リンクは、URLを知っている人なら誰でも開けます。公開したくない情報は含めないようにしてください。
+            </p>
             <input
               readOnly
               value={shareUrl}
@@ -165,7 +199,7 @@ export function DeckEditorPage() {
         </div>
       )}
 
-      {exportCode && (
+      {SHARING_FEATURES_ENABLED && exportCode && (
         <div className="modal-backdrop" onClick={() => setExportCode(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h3 className="section-title">デッキコード</h3>
@@ -174,7 +208,7 @@ export function DeckEditorPage() {
               readOnly
               value={exportCode}
               className="text-input"
-              style={{ width: '100%', fontFamily: 'monospace', fontSize: 24, textAlign: 'center', letterSpacing: 4 }}
+              style={{ width: '100%', fontFamily: 'monospace', fontSize: 18, textAlign: 'center', letterSpacing: 1 }}
               onFocus={(e) => e.target.select()}
             />
             <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
@@ -185,18 +219,18 @@ export function DeckEditorPage() {
         </div>
       )}
 
-      {importOpen && (
+      {SHARING_FEATURES_ENABLED && importOpen && (
         <div className="modal-backdrop" onClick={() => setImportOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h3 className="section-title">コードでデッキ取得</h3>
-            <p className="zone-config-hint">6文字のデッキコードを入力してください。新しいデッキとして保存されます。</p>
+            <p className="zone-config-hint">共有コードを入力してください。新しいデッキとして保存されます。</p>
             <input
               value={importText}
               onChange={(e) => { setImportText(e.target.value); setImportError(''); }}
-              placeholder="例: abc123"
+              placeholder="例: a1b2c3..."
               className="text-input"
-              style={{ width: '100%', fontFamily: 'monospace', fontSize: 20, textAlign: 'center', letterSpacing: 4 }}
-              maxLength={10}
+              style={{ width: '100%', fontFamily: 'monospace', fontSize: 18, textAlign: 'center', letterSpacing: 1 }}
+              maxLength={64}
               disabled={importLoading}
             />
             {importError && <p style={{ color: 'var(--color-danger)', marginTop: 4, fontSize: 13 }}>{importError}</p>}
@@ -224,7 +258,6 @@ export function DeckEditorPage() {
           カードメニュー
         </button>
       </div>
-
       <div className="tab-content">
         {tab === 'cards' && (
           <>
@@ -270,7 +303,11 @@ export function DeckEditorPage() {
           </>
         )}
         {tab === 'macros' && (
-          <MacroEditor macros={deck.macros} onChange={(macros) => setDeck({ ...deck, macros })} />
+          <MacroEditor
+            macros={deck.macros}
+            maxMacros={PUBLIC_MACRO_LIMIT_PER_DECK}
+            onChange={(macros) => setDeck({ ...deck, macros: limitMacros(macros) })}
+          />
         )}
         {tab === 'zones' && (
           <ZonePresetEditor

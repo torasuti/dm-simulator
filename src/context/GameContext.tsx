@@ -1,13 +1,12 @@
 import { createContext, useContext, useReducer, type ReactNode } from 'react';
 import type {
   GameState, BoardState, Card, ZoneId, DeckDefinition,
-  MacroAction, PendingReveal, PendingPick, PendingEvolve, PendingMultiEvolve, PendingStack, PendingMultiStack, MacroDestination, ZoneConfigPreset, AbilityStockDef, SpecialCardType,
+  MacroAction, PendingReveal, PendingLookArrange, PendingPick, PendingEvolve, PendingMultiEvolve, PendingStack, PendingMultiStack, MacroDestination, ZoneConfigPreset, AbilityStockDef, SpecialCardType,
 } from '../types';
 import { shuffle } from '../utils/deckUtils';
 import { ALL_ZONE_IDS, DEFAULT_CARD_MENU_CONFIG, DEFAULT_ZONE_CONFIGS } from '../constants/zones';
 
 const MAX_HISTORY = 20;
-
 // これらのゾーンに移動したカードは強制的にアンタップ
 const TAP_ALLOWED_ZONES: Set<ZoneId> = new Set(['battleZone', 'manaZone']);
 
@@ -39,6 +38,21 @@ function untapForDest(card: Card, destZoneId: ZoneId): Card {
   return TAP_ALLOWED_ZONES.has(destZoneId) ? card : { ...card, tapped: false };
 }
 
+function isDeckDestination(dest: ZoneId | MacroDestination): boolean {
+  return dest === 'deckTop'
+    || dest === 'deckTopShuffle'
+    || dest === 'deckTopOrder'
+    || dest === 'deckBottom'
+    || dest === 'deckBottomShuffle'
+    || dest === 'deckBottomOrder';
+}
+
+function markLeavingZone(card: Card, zoneId: ZoneId): Card {
+  if (zoneId === 'grZone') return { ...card, isGR: true };
+  if (zoneId === 'superDimZone') return { ...card, isSuperDim: true };
+  return card;
+}
+
 function applyDestination(board: BoardState, card: Card, dest: MacroDestination): void {
   if (card.isGR && dest !== 'battleZone' && dest !== 'grZoneBottom' && dest !== 'hiddenZone') {
     board.grZone = [...board.grZone, { ...card, isGR: false, tapped: false }];
@@ -66,12 +80,15 @@ function applyDestination(board: BoardState, card: Card, dest: MacroDestination)
 }
 
 function applyDestinationMultiple(board: BoardState, cards: Card[], dest: MacroDestination): void {
-  const destZoneId: ZoneId = (dest === 'deckTop' || dest === 'deckTopShuffle' || dest === 'deckTopOrder' || dest === 'deckBottom' || dest === 'deckBottomShuffle' || dest === 'deckBottomOrder') ? 'deck' : dest as ZoneId;
+  const destZoneId: ZoneId = isDeckDestination(dest) ? 'deck' : dest as ZoneId;
   const placed = TAP_ALLOWED_ZONES.has(destZoneId) ? cards : cards.map(c => ({ ...c, tapped: false }));
+  const ordered = (dest === 'deckTopShuffle' || dest === 'deckBottomShuffle') ? shuffle(placed) : placed;
   if (dest === 'deckTop' || dest === 'deckTopShuffle' || dest === 'deckTopOrder') {
-    board.deck = [...placed, ...board.deck];
+    board.deck = [...ordered, ...board.deck];
   } else if (dest === 'deckBottom' || dest === 'deckBottomShuffle' || dest === 'deckBottomOrder') {
-    board.deck = [...board.deck, ...placed];
+    board.deck = [...board.deck, ...ordered];
+  } else if (dest === 'grZoneBottom') {
+    board.grZone = [...board.grZone, ...placed.map((card) => ({ ...card, isGR: false, tapped: false }))];
   } else {
     board[dest as ZoneId] = [...board[dest as ZoneId], ...placed];
   }
@@ -81,6 +98,7 @@ export type GameAction =
   | { type: 'INIT_GAME'; deck: DeckDefinition }
   | { type: 'DRAW'; n: number }
   | { type: 'MOVE_TOP_TO_ZONE'; n: number; from: ZoneId; to: ZoneId | MacroDestination }
+  | { type: 'MOVE_ALL_FROM_ZONES'; sources: ZoneId[]; to: MacroDestination }
   | { type: 'MOVE_CARD'; cardId: string; from: ZoneId; to: ZoneId | MacroDestination }
   | { type: 'TAP_CARD'; zoneId: ZoneId; cardId: string }
   | { type: 'UNTAP_ALL'; zoneId: ZoneId }
@@ -89,6 +107,11 @@ export type GameAction =
   | { type: 'CLICK_REVEALED_CARD'; cardId: string }
   | { type: 'CONFIRM_REVEAL' }
   | { type: 'CANCEL_REVEAL' }
+  | { type: 'BEGIN_LOOK_ARRANGE'; cards: Card[]; destinations: MacroDestination[]; remainingSteps: MacroAction[] }
+  | { type: 'SET_LOOK_DESTINATION'; cardId: string; destination: MacroDestination }
+  | { type: 'MOVE_LOOK_CARD'; cardId: string; direction: -1 | 1 }
+  | { type: 'CONFIRM_LOOK_ARRANGE' }
+  | { type: 'CANCEL_LOOK_ARRANGE' }
   | { type: 'BEGIN_PICK'; sources: ZoneId[]; destination: MacroDestination; maxCount: number | null; remainingSteps: MacroAction[] }
   | { type: 'SET_PICK_SOURCE'; source: ZoneId }
   | { type: 'TOGGLE_PICK_CARD'; cardId: string }
@@ -143,6 +166,7 @@ const initialState: GameState = {
   abilityStockValues: {},
   history: [],
   pendingReveal: null,
+  pendingLookArrange: null,
   pendingPick: null,
   pendingEvolve: null,
   pendingMultiEvolve: null,
@@ -166,10 +190,14 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     case 'INIT_GAME': {
       const { deck } = action;
       const shuffled = shuffle(deck.cards.map((c) => ({ ...c, id: crypto.randomUUID(), tapped: false })));
+      const grCards = shuffle((deck.grCards ?? []).map((c) => ({ ...c, id: crypto.randomUUID(), tapped: false, isGR: false })));
+      const superDimCards = (deck.superDimCards ?? []).map((c) => ({ ...c, id: crypto.randomUUID(), tapped: false, isSuperDim: false }));
       const board = emptyBoard();
       board.shieldZone = shuffled.slice(0, 5);
       board.hand = shuffled.slice(5, 10);
       board.deck = shuffled.slice(10);
+      if (grCards.length > 0) board.grZone = grCards;
+      if (superDimCards.length > 0) board.superDimZone = superDimCards;
 
       const specialCard: SpecialCardType = deck.specialCard ?? 'none';
       let kindanCards: Card[] = [];
@@ -184,15 +212,6 @@ function gameReducer(state: GameState, action: GameAction): GameState {
           board.deck.splice(0, 1)[0] ?? null,
           board.deck.splice(0, 1)[0] ?? null,
         ];
-      }
-
-      const hasGR = (deck.grCards ?? []).length > 0;
-      const hasSuperDim = (deck.superDimCards ?? []).length > 0;
-      if (hasGR) {
-        board.grZone = shuffle((deck.grCards ?? []).map((c) => ({ ...c, id: crypto.randomUUID(), tapped: false, isGR: false })));
-      }
-      if (hasSuperDim) {
-        board.superDimZone = (deck.superDimCards ?? []).map((c) => ({ ...c, id: crypto.randomUUID(), tapped: false, isSuperDim: false }));
       }
 
       const presets: ZoneConfigPreset[] = (deck.zoneConfigPresets?.length
@@ -233,6 +252,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         abilityStockValues,
         history: [],
         pendingReveal: null,
+        pendingLookArrange: null,
         pendingPick: null,
         pendingEvolve: null,
         pendingMultiEvolve: null,
@@ -259,10 +279,33 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       const s = pushHistory(state);
       const board = snapshot(s.board);
       const moved = board[action.from].splice(0, action.n);
-      if (action.to === 'deckTop' || action.to === 'deckBottom') {
+      if (isDeckDestination(action.to) || action.to === 'grZoneBottom') {
         applyDestinationMultiple(board, moved, action.to as MacroDestination);
       } else {
-        board[action.to as ZoneId] = [...board[action.to as ZoneId], ...moved];
+        const toZone = action.to as ZoneId;
+        if (!ALL_ZONE_IDS.includes(toZone)) return state;
+        board[toZone] = [...board[toZone], ...moved.map((card) => untapForDest(card, toZone))];
+      }
+      return { ...s, board };
+    }
+
+    case 'MOVE_ALL_FROM_ZONES': {
+      const moved: Card[] = [];
+      for (const source of action.sources) {
+        moved.push(...state.board[source].map((card) => markLeavingZone(card, source)));
+      }
+      if (moved.length === 0) return state;
+
+      const s = pushHistory(state);
+      const board = snapshot(s.board);
+      for (const source of action.sources) {
+        board[source] = [];
+      }
+
+      if (isDeckDestination(action.to)) {
+        applyDestinationMultiple(board, moved, action.to);
+      } else {
+        for (const card of moved) applyDestination(board, card, action.to);
       }
       return { ...s, board };
     }
@@ -276,7 +319,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       let [card] = from.splice(idx, 1);
       if (action.from === 'grZone') card = { ...card, isGR: true };
       if (action.from === 'superDimZone') card = { ...card, isSuperDim: true };
-      if (action.to === 'deckTop' || action.to === 'deckBottom' || action.to === 'grZoneBottom' || action.to === 'superDimZone') {
+      if (isDeckDestination(action.to) || action.to === 'grZoneBottom' || action.to === 'superDimZone') {
         applyDestination(board, card, action.to as MacroDestination);
       } else {
         const toZone = action.to as ZoneId;
@@ -391,6 +434,77 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       board.displayZone = board.displayZone.filter((c) => !cards.some((rc) => rc.id === c.id));
       board.deck = [...cards, ...board.deck];
       return { ...s, board, pendingReveal: null, pendingMinimized: false };
+    }
+
+    case 'BEGIN_LOOK_ARRANGE': {
+      const destinations: MacroDestination[] = action.destinations.length > 0 ? action.destinations : ['deckBottom'];
+      const initialDestination = destinations[0];
+      const assignments: Record<string, MacroDestination> = {};
+      for (const card of action.cards) assignments[card.id] = initialDestination;
+      const pending: PendingLookArrange = {
+        cards: action.cards,
+        destinations,
+        assignments,
+        order: action.cards.map((card) => card.id),
+        remainingSteps: action.remainingSteps,
+      };
+      return { ...state, pendingLookArrange: pending };
+    }
+
+    case 'SET_LOOK_DESTINATION': {
+      if (!state.pendingLookArrange) return state;
+      return {
+        ...state,
+        pendingLookArrange: {
+          ...state.pendingLookArrange,
+          assignments: {
+            ...state.pendingLookArrange.assignments,
+            [action.cardId]: action.destination,
+          },
+        },
+      };
+    }
+
+    case 'MOVE_LOOK_CARD': {
+      if (!state.pendingLookArrange) return state;
+      const order = [...state.pendingLookArrange.order];
+      const idx = order.indexOf(action.cardId);
+      const nextIdx = idx + action.direction;
+      if (idx === -1 || nextIdx < 0 || nextIdx >= order.length) return state;
+      [order[idx], order[nextIdx]] = [order[nextIdx], order[idx]];
+      return { ...state, pendingLookArrange: { ...state.pendingLookArrange, order } };
+    }
+
+    case 'CONFIRM_LOOK_ARRANGE': {
+      if (!state.pendingLookArrange) return state;
+      const s = pushHistory(state);
+      const board = snapshot(s.board);
+      const { cards, order, assignments, destinations } = state.pendingLookArrange;
+      const fallbackDestination = destinations[0] ?? 'deckBottom';
+      board.displayZone = board.displayZone.filter((c) => !cards.some((rc) => rc.id === c.id));
+
+      const grouped = new Map<MacroDestination, Card[]>();
+      for (const cardId of order) {
+        const card = cards.find((c) => c.id === cardId);
+        if (!card) continue;
+        const dest = assignments[card.id] ?? fallbackDestination;
+        grouped.set(dest, [...(grouped.get(dest) ?? []), card]);
+      }
+      for (const [dest, destCards] of grouped) {
+        applyDestinationMultiple(board, destCards, dest);
+      }
+
+      return { ...s, board, pendingLookArrange: null, pendingMinimized: false };
+    }
+
+    case 'CANCEL_LOOK_ARRANGE': {
+      if (!state.pendingLookArrange) return state;
+      const s = pushHistory(state);
+      const board = snapshot(s.board);
+      const { cards } = state.pendingLookArrange;
+      board.displayZone = board.displayZone.filter((c) => !cards.some((rc) => rc.id === c.id));
+      board.deck = [...cards, ...board.deck];
+      return { ...s, board, pendingLookArrange: null, pendingMinimized: false };
     }
 
     case 'BEGIN_PICK': {
@@ -821,11 +935,11 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       if (state.history.length === 0) return state;
       const history = [...state.history];
       const prev = history.pop()!;
-      return { ...state, board: prev, history, pendingReveal: null, pendingPick: null, pendingEvolve: null, pendingMultiEvolve: null, pendingStack: null, pendingMultiStack: null, pendingMinimized: false };
+      return { ...state, board: prev, history, pendingReveal: null, pendingLookArrange: null, pendingPick: null, pendingEvolve: null, pendingMultiEvolve: null, pendingStack: null, pendingMultiStack: null, pendingMinimized: false };
     }
 
     case 'RESET_GAME':
-      return { ...state, board: emptyBoard(), history: [], pendingReveal: null, pendingPick: null, pendingEvolve: null, pendingMultiEvolve: null, pendingStack: null, pendingMultiStack: null, pendingMinimized: false };
+      return { ...state, board: emptyBoard(), history: [], pendingReveal: null, pendingLookArrange: null, pendingPick: null, pendingEvolve: null, pendingMultiEvolve: null, pendingStack: null, pendingMultiStack: null, pendingMinimized: false };
 
     default:
       return state;

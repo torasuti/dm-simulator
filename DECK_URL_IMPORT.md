@@ -12,7 +12,7 @@
 ### 1. デッキデータ取得（Firestore REST API）
 
 ```
-GET https://firestore.googleapis.com/v1/projects/prod-deckmaker-8345f/databases/(default)/documents/version/2/dm_decks/{deck_id}?key=AIzaSyCKhH2S_r29U5olfQC6AsXaaHNhqmJMR40
+GET https://firestore.googleapis.com/v1/projects/prod-deckmaker-8345f/databases/(default)/documents/version/2/dm_decks/{deck_id}?key=<FIRESTORE_API_KEY>
 ```
 
 レスポンスの `fields.main_cards.arrayValue.values` に各カードの `main_card_id`（整数）が入っている。
@@ -128,7 +128,7 @@ export default defineConfig({
 ## フロントエンドのユーティリティ（src/utils/fetchDeckCards.ts）
 
 ```ts
-const FIRESTORE_KEY = 'AIzaSyCKhH2S_r29U5olfQC6AsXaaHNhqmJMR40'
+const FIRESTORE_KEY = import.meta.env.VITE_FIRESTORE_KEY
 const FIRESTORE_BASE = '/proxy/firestore'   // Viteプロキシ経由
 const CARD_API_BASE = '/proxy/dm-cards'     // Viteプロキシ経由
 ```

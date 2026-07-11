@@ -8,6 +8,7 @@ import { ZonePanel } from '../components/gameBoard/ZonePanel';
 import { MacroBar } from '../components/gameBoard/MacroBar';
 import { GameControls } from '../components/gameBoard/GameControls';
 import { DisplayZoneOverlay } from '../components/gameBoard/DisplayZoneOverlay';
+import { LookArrangeOverlay } from '../components/gameBoard/LookArrangeOverlay';
 import { PickZoneOverlay } from '../components/gameBoard/PickZoneOverlay';
 import { EvolveOverlay } from '../components/gameBoard/EvolveOverlay';
 import { MultiStackOverlay } from '../components/gameBoard/MultiStackOverlay';
@@ -53,12 +54,14 @@ export function GameBoardPage() {
   }, [appState.selectedDeckId, user]);
 
   const visibleZones = state.zoneConfigs.filter((z) => z.visible);
-  const hasPending = !!(state.pendingReveal || state.pendingPick || state.pendingEvolve || state.pendingMultiEvolve || state.pendingMultiStack);
+  const hasPending = !!(state.pendingReveal || state.pendingLookArrange || state.pendingPick || state.pendingEvolve || state.pendingMultiEvolve || state.pendingMultiStack);
   const isMinimized = hasPending && state.pendingMinimized;
   const pendingStack = state.pendingStack;
 
   const pendingLabel = state.pendingReveal
     ? 'カード選択中'
+    : state.pendingLookArrange
+    ? '山札確認中'
     : state.pendingPick
     ? 'カード選択中'
     : state.pendingEvolve
@@ -119,6 +122,7 @@ export function GameBoardPage() {
       <MacroBar macros={state.macros} locked={hasPending || !!pendingStack} />
       <GameControls />
       <DisplayZoneOverlay />
+      <LookArrangeOverlay />
       <PickZoneOverlay />
       <EvolveOverlay />
       <MultiEvolveOverlay />
